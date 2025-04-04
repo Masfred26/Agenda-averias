@@ -1,153 +1,308 @@
-import React, { useState, useEffect } from "https://esm.sh/react";
-import ReactDOM from "https://esm.sh/react-dom/client";
+document.addEventListener('DOMContentLoaded', () => {
+    // --- REFERENCIAS AL DOM ---
+    const formCrear = document.getElementById('form-crear');
+    const tituloInput = document.getElementById('titulo-input');
+    const descripcionInput = document.getElementById('descripcion-input');
+    const averiasListUl = document.getElementById('averias-list-ul');
+    const filtroEstado = document.getElementById('filtro-estado');
+    const themeToggle = document.getElementById('theme-toggle');
+    const averiaTemplate = document.getElementById('averia-template');
+    const comentarioTemplate = document.getElementById('comentario-template');
 
-function App() {
-  const [averias, setAverias] = useState([]);
-  const [titulo, setTitulo] = useState("");
-  const [descripcion, setDescripcion] = useState("");
-  const [estadoFiltro, setEstadoFiltro] = useState("Todas");
+    // --- ESTADO DE LA APLICACIÓN ---
+    let averias = [];
+    const ESTADOS_POSIBLES = [
+        "Pendiente", "En proceso", "Pedir recambio", "Recambio pedido",
+        "Recambio en almacén", "Solucionada", "Cancelada"
+    ];
 
-  const estados = [
-    "Pendiente", "En proceso", "Pedir recambio",
-    "Recambio pedido", "Recambio en almacén",
-    "Solucionada", "Cancelada"
-  ];
-
-  useEffect(() => {
-    const data = localStorage.getItem("averias");
-    if (data) setAverias(JSON.parse(data));
-  }, []);
-
-  useEffect(() => {
-    localStorage.setItem("averias", JSON.stringify(averias));
-  }, [averias]);
-
-  const agregarAveria = () => {
-    const nueva = {
-      id: Date.now(),
-      titulo,
-      descripcion,
-      estado: "Pendiente",
-      fecha: new Date().toLocaleString(),
-      comentarios: []
-    };
-    setAverias([nueva, ...averias]);
-    setTitulo(""); setDescripcion("");
-  };
-
-  const actualizarEstado = (id, nuevoEstado) => {
-    if (nuevoEstado === "Cancelada") {
-      setAverias(averias.filter(a => a.id !== id));
-    } else {
-      setAverias(averias.map(a => a.id === id ? { ...a, estado: nuevoEstado } : a));
-    }
-  };
-
-  const editarDescripcion = (id, texto) => {
-    setAverias(averias.map(a => a.id === id ? { ...a, descripcion: texto } : a));
-  };
-
-  const agregarComentario = (id, texto) => {
-    if (!texto.trim()) return;
-    setAverias(averias.map(a => a.id === id ? { ...a, comentarios: [...a.comentarios, texto] } : a));
-  };
-
-  const editarComentario = (id, index, texto) => {
-    setAverias(averias.map(a => {
-      if (a.id !== id) return a;
-      const comentarios = [...a.comentarios];
-      comentarios[index] = texto;
-      return { ...a, comentarios };
-    }));
-  };
-
-  const eliminarComentario = (id, index) => {
-    setAverias(averias.map(a => {
-      if (a.id !== id) return a;
-      const comentarios = [...a.comentarios];
-      comentarios.splice(index, 1);
-      return { ...a, comentarios };
-    }));
-  };
-
-  const moverAveria = (id, direccion) => {
-    const index = averias.findIndex(a => a.id === id);
-    if (index === -1) return;
-    const copia = [...averias];
-    const nuevoIndex = direccion === "subir" ? index - 1 : index + 1;
-    if (nuevoIndex < 0 || nuevoIndex >= copia.length) return;
-    [copia[index], copia[nuevoIndex]] = [copia[nuevoIndex], copia[index]];
-    setAverias(copia);
-  };
-
-  const averiasFiltradas = averias
-    .filter(a => estadoFiltro === "Todas" || a.estado === estadoFiltro)
-    .sort((a, b) => b.id - a.id);
-
-  return (
-    React.createElement("div", null,
-      React.createElement("input", { placeholder: "Título", value: titulo, onChange: e => setTitulo(e.target.value) }),
-      React.createElement("textarea", { placeholder: "Descripción", value: descripcion, onChange: e => setDescripcion(e.target.value) }),
-      React.createElement("button", { onClick: agregarAveria }, "Guardar avería"),
-
-      React.createElement("select", {
-        value: estadoFiltro,
-        onChange: e => setEstadoFiltro(e.target.value),
-        style: { marginBottom: "1rem", backgroundColor: "#2563eb", color: "#fff" }
-      },
-        React.createElement("option", { value: "Todas" }, "Todas las averías"),
-        estados.map(e => React.createElement("option", { key: e, value: e }, e))
-      ),
-
-      averiasFiltradas.map(a => {
-        const [comentario, setComentario] = useState("");
-        return React.createElement("div", { key: a.id, className: "card" },
-          React.createElement("h3", null, a.titulo),
-          React.createElement("textarea", {
-            value: a.descripcion,
-            onChange: e => editarDescripcion(a.id, e.target.value)
-          }),
-          React.createElement("p", null, "Fecha: ", a.fecha),
-          React.createElement("p", null, "Estado: ", a.estado),
-          React.createElement("select", {
-            value: a.estado,
-            onChange: e => actualizarEstado(a.id, e.target.value),
-            style: { backgroundColor: "#3b82f6", color: "#fff" }
-          },
-            estados.map(e => React.createElement("option", { key: e, value: e }, e))
-          ),
-          React.createElement("div", { className: "move-buttons" },
-            React.createElement("button", { onClick: () => moverAveria(a.id, "subir") }, "↑"),
-            React.createElement("button", { onClick: () => moverAveria(a.id, "bajar") }, "↓")
-          ),
-          React.createElement("ul", null,
-            a.comentarios.map((c, i) =>
-              React.createElement("li", { key: i },
-                React.createElement("input", {
-                  value: c,
-                  onChange: e => editarComentario(a.id, i, e.target.value)
-                }),
-                " ",
-                React.createElement("button", { onClick: () => eliminarComentario(a.id, i) }, "Eliminar")
-              )
-            )
-          ),
-          React.createElement("input", {
-            placeholder: "Comentario",
-            value: comentario,
-            onChange: e => setComentario(e.target.value)
-          }),
-          React.createElement("button", {
-            onClick: () => {
-              agregarComentario(a.id, comentario);
-              setComentario("");
+    // --- FUNCIONES DE PERSISTENCIA (localStorage) ---
+    const cargarAverias = () => {
+        const averiasGuardadas = localStorage.getItem('agendaAverias');
+        if (averiasGuardadas) {
+            try {
+                averias = JSON.parse(averiasGuardadas);
+                // Asegurarse de que los comentarios sean siempre un array
+                averias.forEach(a => {
+                    if (!Array.isArray(a.comentarios)) {
+                        a.comentarios = [];
+                    }
+                });
+            } catch (error) {
+                console.error("Error al parsear averías de localStorage:", error);
+                averias = []; // Resetear si hay error
             }
-          }, "Guardar comentario")
-        );
-      })
-    )
-  );
-}
+        } else {
+            averias = [];
+        }
+        renderAverias(); // Renderizar al cargar
+    };
 
-const root = ReactDOM.createRoot(document.getElementById("root"));
-root.render(React.createElement(App));
+    const guardarAverias = () => {
+        try {
+            localStorage.setItem('agendaAverias', JSON.stringify(averias));
+        } catch (error) {
+            console.error("Error al guardar averías en localStorage:", error);
+            alert("Error: No se pudieron guardar los cambios. El almacenamiento podría estar lleno.");
+        }
+    };
+
+    // --- FUNCIONES DE RENDERIZADO ---
+    const renderAverias = () => {
+        averiasListUl.innerHTML = ''; // Limpiar lista actual
+        const estadoFiltrado = filtroEstado.value;
+
+        const averiasFiltradas = (estadoFiltrado === 'todos')
+            ? averias
+            : averias.filter(a => a.estado === estadoFiltrado);
+
+        // Renderizar de la más nueva a la más vieja (por defecto)
+        // El array 'averias' ya mantiene el orden manual/creación
+        averiasFiltradas.forEach((averia, indexGlobal) => {
+            const templateNode = averiaTemplate.content.cloneNode(true);
+            const listItem = templateNode.querySelector('.averia-item');
+            const tituloEl = listItem.querySelector('.averia-titulo');
+            const fechaEl = listItem.querySelector('.averia-fecha');
+            const estadoSelect = listItem.querySelector('.averia-estado');
+            const descripcionTextarea = listItem.querySelector('.averia-descripcion');
+            const btnSubir = listItem.querySelector('.btn-subir');
+            const btnBajar = listItem.querySelector('.btn-bajar');
+            const comentariosList = listItem.querySelector('.comentarios-list');
+            const formComentario = listItem.querySelector('.form-comentario');
+            const inputComentario = formComentario.querySelector('input[type="text"]');
+
+            listItem.dataset.id = averia.id; // Guardar ID en el elemento
+            tituloEl.textContent = averia.titulo;
+            fechaEl.textContent = `Creada: ${new Date(averia.fechaCreacion).toLocaleString()}`;
+            descripcionTextarea.value = averia.descripcion;
+            estadoSelect.value = averia.estado;
+
+            // Ocultar botones de orden en los extremos
+            const indexEnFiltradas = averias.findIndex(a => a.id === averia.id); // Indice real en el array global
+            if (indexEnFiltradas === 0) btnSubir.style.display = 'none';
+            if (indexEnFiltradas === averias.length - 1) btnBajar.style.display = 'none';
+
+
+            // Event Listeners específicos de la avería
+            estadoSelect.addEventListener('change', (e) => handleEstadoChange(averia.id, e.target.value));
+            descripcionTextarea.addEventListener('input', (e) => handleDescripcionChange(averia.id, e.target.value));
+            btnSubir.addEventListener('click', () => moverAveria(averia.id, 'subir'));
+            btnBajar.addEventListener('click', () => moverAveria(averia.id, 'bajar'));
+
+            // Renderizar comentarios
+            renderComentarios(averia.id, comentariosList);
+
+            // Formulario de nuevo comentario
+            formComentario.addEventListener('submit', (e) => {
+                e.preventDefault();
+                const textoComentario = inputComentario.value.trim();
+                if (textoComentario) {
+                    agregarComentario(averia.id, textoComentario);
+                    inputComentario.value = ''; // Limpiar input
+                }
+            });
+
+            averiasListUl.appendChild(listItem);
+        });
+    };
+
+    const renderComentarios = (averiaId, comentariosListElement) => {
+        comentariosListElement.innerHTML = '';
+        const averia = averias.find(a => a.id === averiaId);
+        if (!averia || !averia.comentarios) return;
+
+        averia.comentarios.forEach(comentario => {
+             const templateNode = comentarioTemplate.content.cloneNode(true);
+             const comentarioItem = templateNode.querySelector('.comentario-item');
+             const fechaEl = comentarioItem.querySelector('.comentario-fecha');
+             const textoEl = comentarioItem.querySelector('.comentario-texto');
+             const btnEditar = comentarioItem.querySelector('.btn-editar-comentario');
+             const btnEliminar = comentarioItem.querySelector('.btn-eliminar-comentario');
+
+             comentarioItem.dataset.id = comentario.id;
+             fechaEl.textContent = new Date(comentario.fechaCreacion).toLocaleString();
+             textoEl.textContent = comentario.texto;
+
+             btnEditar.addEventListener('click', () => editarComentario(averiaId, comentario.id));
+             btnEliminar.addEventListener('click', () => eliminarComentario(averiaId, comentario.id));
+
+             comentariosListElement.appendChild(comentarioItem);
+        });
+    };
+
+
+    // --- MANEJADORES DE EVENTOS Y LÓGICA ---
+
+    // Crear nueva avería
+    formCrear.addEventListener('submit', (e) => {
+        e.preventDefault();
+        const titulo = tituloInput.value.trim();
+        const descripcion = descripcionInput.value.trim();
+
+        if (titulo && descripcion) {
+            const nuevaAveria = {
+                id: Date.now(), // ID simple basado en timestamp
+                titulo: titulo,
+                descripcion: descripcion,
+                fechaCreacion: Date.now(),
+                estado: "Pendiente",
+                comentarios: []
+            };
+            // Añadir al principio para que aparezcan arriba
+            averias.unshift(nuevaAveria);
+            guardarAverias();
+            renderAverias();
+            // Limpiar formulario
+            tituloInput.value = '';
+            descripcionInput.value = '';
+        } else {
+            alert('Por favor, completa el título y la descripción.');
+        }
+    });
+
+    // Cambiar estado
+    const handleEstadoChange = (id, nuevoEstado) => {
+        const index = averias.findIndex(a => a.id === id);
+        if (index !== -1) {
+            if (nuevoEstado === "Cancelada") {
+                if (confirm(`¿Seguro que quieres eliminar permanentemente la avería "${averias[index].titulo}"?`)) {
+                    averias.splice(index, 1); // Eliminar del array
+                } else {
+                    // Si cancela la eliminación, revertir el select visualmente
+                    renderAverias(); // Volver a renderizar para restaurar el select
+                    return; // No guardar cambios
+                }
+            } else {
+                averias[index].estado = nuevoEstado;
+            }
+            guardarAverias();
+            renderAverias(); // Volver a renderizar para reflejar cambios y aplicar filtro si es necesario
+        }
+    };
+
+    // Editar descripción
+    const handleDescripcionChange = (id, nuevaDescripcion) => {
+        const index = averias.findIndex(a => a.id === id);
+        if (index !== -1) {
+            averias[index].descripcion = nuevaDescripcion;
+            // Guardar cambios con un pequeño debounce para no saturar localStorage en cada tecla
+            clearTimeout(averias[index].saveTimeout);
+            averias[index].saveTimeout = setTimeout(() => {
+                 guardarAverias();
+            }, 500); // Guarda 500ms después de dejar de escribir
+        }
+    };
+
+    // Mover avería
+    const moverAveria = (id, direccion) => {
+        const index = averias.findIndex(a => a.id === id);
+        if (index === -1) return;
+
+        if (direccion === 'subir' && index > 0) {
+            // Intercambiar con el elemento anterior
+            [averias[index], averias[index - 1]] = [averias[index - 1], averias[index]];
+        } else if (direccion === 'bajar' && index < averias.length - 1) {
+            // Intercambiar con el elemento siguiente
+            [averias[index], averias[index + 1]] = [averias[index + 1], averias[index]];
+        }
+
+        guardarAverias();
+        renderAverias(); // Re-renderizar para mostrar el nuevo orden
+    };
+
+    // Filtrar por estado
+    filtroEstado.addEventListener('change', renderAverias);
+
+    // Comentarios
+    const agregarComentario = (averiaId, texto) => {
+         const index = averias.findIndex(a => a.id === averiaId);
+         if (index !== -1) {
+             const nuevoComentario = {
+                 id: Date.now() + 1, // ID simple para comentario
+                 texto: texto,
+                 fechaCreacion: Date.now()
+             };
+             // Asegurar que el array de comentarios exista
+             if (!Array.isArray(averias[index].comentarios)) {
+                 averias[index].comentarios = [];
+             }
+             averias[index].comentarios.push(nuevoComentario);
+             guardarAverias();
+             renderAverias(); // Re-renderizar para mostrar el nuevo comentario
+         }
+    };
+
+    const editarComentario = (averiaId, comentarioId) => {
+        const averiaIndex = averias.findIndex(a => a.id === averiaId);
+        if (averiaIndex === -1) return;
+        const comentarioIndex = averias[averiaIndex].comentarios.findIndex(c => c.id === comentarioId);
+        if (comentarioIndex === -1) return;
+
+        const comentarioActual = averias[averiaIndex].comentarios[comentarioIndex];
+        const nuevoTexto = prompt("Edita tu comentario:", comentarioActual.texto);
+
+        if (nuevoTexto !== null && nuevoTexto.trim() !== "") {
+            averias[averiaIndex].comentarios[comentarioIndex].texto = nuevoTexto.trim();
+            guardarAverias();
+            renderAverias();
+        } else if (nuevoTexto === "") {
+             alert("El comentario no puede estar vacío.");
+        }
+    };
+
+    const eliminarComentario = (averiaId, comentarioId) => {
+        const averiaIndex = averias.findIndex(a => a.id === averiaId);
+        if (averiaIndex === -1) return;
+
+        if (confirm("¿Seguro que quieres eliminar este comentario?")) {
+             // Filtrar el comentario a eliminar
+             averias[averiaIndex].comentarios = averias[averiaIndex].comentarios.filter(c => c.id !== comentarioId);
+             guardarAverias();
+             renderAverias();
+        }
+    };
+
+
+    // --- MODO OSCURO ---
+    const aplicarTema = (oscuro) => {
+        if (oscuro) {
+            document.body.classList.add('dark-mode');
+            themeToggle.textContent = 'Modo Claro';
+        } else {
+            document.body.classList.remove('dark-mode');
+            themeToggle.textContent = 'Modo Oscuro';
+        }
+        localStorage.setItem('theme', oscuro ? 'dark' : 'light');
+    };
+
+    themeToggle.addEventListener('click', () => {
+        const isDark = document.body.classList.contains('dark-mode');
+        aplicarTema(!isDark);
+    });
+
+    // Aplicar tema guardado al cargar
+    const temaGuardado = localStorage.getItem('theme');
+    if (temaGuardado === 'dark' || (temaGuardado === null && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+         aplicarTema(true);
+    } else {
+         aplicarTema(false);
+    }
+
+
+    // --- REGISTRO DEL SERVICE WORKER ---
+    if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+            navigator.serviceWorker.register('/service-worker.js')
+                .then(registration => {
+                    console.log('ServiceWorker registrado con éxito:', registration.scope);
+                })
+                .catch(error => {
+                    console.log('Fallo en el registro del ServiceWorker:', error);
+                });
+        });
+    }
+
+    // --- CARGA INICIAL ---
+    cargarAverias();
+});
+
