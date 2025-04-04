@@ -1,61 +1,94 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Agenda de Averías</title>
-  <link rel="manifest" href="manifest.json" />
-  <meta name="theme-color" content="#000000" />
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      background-color: #121212;
-      color: white;
-      margin: 0;
-      padding: 1rem;
-    }
-    h1 {
-      text-align: center;
-    }
-    input, textarea, select, button {
-      width: 100%;
-      padding: 0.5rem;
-      margin-bottom: 0.5rem;
-      border: none;
-      border-radius: 6px;
-      font-size: 1rem;
-    }
-    input, textarea, select {
-      background-color: #1f1f1f;
-      color: white;
-    }
-    button {
-      background-color: #2563eb;
-      color: white;
-      font-weight: bold;
-      cursor: pointer;
-    }
-    .card {
-      background: #1e1e1e;
-      padding: 1rem;
-      margin-top: 1rem;
-      border-radius: 10px;
-    }
-    .move-buttons {
-      display: flex;
-      gap: 0.5rem;
-      margin-top: 0.5rem;
-    }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#333"> <title>Agenda de Averías</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="manifest" href="manifest.json">
+    <link rel="apple-touch-icon" href="icons/icon-192x192.png">
 </head>
 <body>
-  <h1>Agenda de Averías</h1>
-  <div id="root"></div>
-  <script type="module" src="main.js"></script>
-  <script>
-    if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('/service-worker.js');
-    }
-  </script>
+    <div id="app">
+        <header>
+            <h1>Agenda de Averías</h1>
+            <button id="theme-toggle">Modo Oscuro</button>
+        </header>
+
+        <section id="nueva-averia-form">
+            <h2>Crear Nueva Avería</h2>
+            <form id="form-crear">
+                <input type="text" id="titulo-input" placeholder="Título de la avería" required>
+                <textarea id="descripcion-input" placeholder="Descripción detallada..." required></textarea>
+                <button type="submit">Añadir Avería</button>
+            </form>
+        </section>
+
+        <section id="filtros">
+            <label for="filtro-estado">Filtrar por estado:</label>
+            <select id="filtro-estado">
+                <option value="todos">Todos</option>
+                <option value="Pendiente">Pendiente</option>
+                <option value="En proceso">En proceso</option>
+                <option value="Pedir recambio">Pedir recambio</option>
+                <option value="Recambio pedido">Recambio pedido</option>
+                <option value="Recambio en almacén">Recambio en almacén</option>
+                <option value="Solucionada">Solucionada</option>
+                </select>
+        </section>
+
+        <section id="lista-averias">
+            <h2>Averías Registradas</h2>
+            <ul id="averias-list-ul">
+                </ul>
+        </section>
+    </div>
+
+    <template id="averia-template">
+        <li class="averia-item">
+            <div class="averia-header">
+                <h3 class="averia-titulo"></h3>
+                <span class="averia-fecha"></span>
+            </div>
+            <div class="averia-controles">
+                 <select class="averia-estado">
+                    <option value="Pendiente">Pendiente</option>
+                    <option value="En proceso">En proceso</option>
+                    <option value="Pedir recambio">Pedir recambio</option>
+                    <option value="Recambio pedido">Recambio pedido</option>
+                    <option value="Recambio en almacén">Recambio en almacén</option>
+                    <option value="Solucionada">Solucionada</option>
+                    <option value="Cancelada">Cancelar</option>
+                </select>
+                <div class="averia-botones-orden">
+                    <button class="btn-subir">↑</button>
+                    <button class="btn-bajar">↓</button>
+                </div>
+            </div>
+            <textarea class="averia-descripcion"></textarea>
+            <div class="averia-comentarios">
+                <h4>Comentarios</h4>
+                <ul class="comentarios-list"></ul>
+                <form class="form-comentario">
+                    <input type="text" placeholder="Añadir comentario..." required>
+                    <button type="submit">Añadir</button>
+                </form>
+            </div>
+        </li>
+    </template>
+
+     <template id="comentario-template">
+         <li class="comentario-item">
+            <span class="comentario-fecha"></span>
+            <p class="comentario-texto"></p>
+            <div class="comentario-acciones">
+                 <button class="btn-editar-comentario">Editar</button>
+                 <button class="btn-eliminar-comentario">Eliminar</button>
+            </div>
+         </li>
+    </template>
+
+
+    <script src="main.js" defer></script>
 </body>
 </html>
