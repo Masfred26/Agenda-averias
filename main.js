@@ -1,308 +1,431 @@
+// ============================================================
+//          main.js - Agenda de Averías (Reconstrucción)
+//          Versión: Completa con todas las funcionalidades
+// ============================================================
 document.addEventListener('DOMContentLoaded', () => {
-    // --- REFERENCIAS AL DOM ---
-    const formCrear = document.getElementById('form-crear');
-    const tituloInput = document.getElementById('titulo-input');
-    const descripcionInput = document.getElementById('descripcion-input');
-    const averiasListUl = document.getElementById('averias-list-ul');
-    const filtroEstado = document.getElementById('filtro-estado');
-    const themeToggle = document.getElementById('theme-toggle');
-    const averiaTemplate = document.getElementById('averia-template');
-    const comentarioTemplate = document.getElementById('comentario-template');
+    console.log("App Agenda Averías - Inicializando...");
 
-    // --- ESTADO DE LA APLICACIÓN ---
-    let averias = [];
-    const ESTADOS_POSIBLES = [
+    // --- Selección de Elementos del DOM ---
+    const getElement = (id) => document.getElementById(id);
+    const appContainer = getElement('app');
+    const newAveriaTitleInput = getElement('new-averia-title');
+    const newAveriaDescriptionInput = getElement('new-averia-description');
+    const addAveriaButton = getElement('add-averia-button');
+    const averiasListContainer = getElement('averias-list');
+    const filterStatusSelect = getElement('filter-status');
+    const themeToggleButton = getElement('theme-toggle');
+    const averiaSuggestionsDatalist = getElement('averia-suggestions');
+
+    // Verificar si todos los elementos existen
+    if (!appContainer || !newAveriaTitleInput || !newAveriaDescriptionInput || !addAveriaButton || !averiasListContainer || !filterStatusSelect || !themeToggleButton || !averiaSuggestionsDatalist) {
+        console.error("Error Crítico: Faltan elementos esenciales del DOM. Revisa IDs en index.html.");
+        alert("Error al cargar la aplicación. Faltan elementos.");
+        return; // Detener ejecución
+    }
+
+    // --- Constantes y Estado Global ---
+    const ESTADOS_AVERIA = [
         "Pendiente", "En proceso", "Pedir recambio", "Recambio pedido",
         "Recambio en almacén", "Solucionada", "Cancelada"
     ];
+    const STORAGE_KEY = 'averias'; // Clave para localStorage
+    const THEME_KEY = 'theme'; // Clave para el tema
+    const DESCRIPCION_SEPARATOR = "\n\n---\n\n"; // Separador para descripciones
+    let averias = []; // Array principal de datos
 
-    // --- FUNCIONES DE PERSISTENCIA (localStorage) ---
-    const cargarAverias = () => {
-        const averiasGuardadas = localStorage.getItem('agendaAverias');
-        if (averiasGuardadas) {
+    // --- Funciones de Utilidad ---
+    const formatDate = (timestamp) => {
+        if (!timestamp) return 'Fecha inválida';
+        try {
+            return new Date(timestamp).toLocaleString('es-ES', {
+                day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit'
+            });
+        } catch (e) {
+            console.error("Error formateando fecha:", timestamp, e);
+            return 'Fecha errónea';
+        }
+    };
+
+    // --- Funciones de Datos (LocalStorage) ---
+    const loadAverias = () => {
+        console.log("Cargando averías desde localStorage...");
+        const storedData = localStorage.getItem(STORAGE_KEY);
+        if (storedData) {
             try {
-                averias = JSON.parse(averiasGuardadas);
-                // Asegurarse de que los comentarios sean siempre un array
-                averias.forEach(a => {
-                    if (!Array.isArray(a.comentarios)) {
-                        a.comentarios = [];
-                    }
-                });
+                const parsedData = JSON.parse(storedData);
+                if (Array.isArray(parsedData)) {
+                    // Validar y limpiar datos cargados
+                    averias = parsedData.map((item, index) => {
+                        if (!item || typeof item !== 'object') return null; // Marcar inválido
+                        return {
+                            id: item.id || Date.now() + index, // Asegurar ID único
+                            title: typeof item.title === 'string' ? item.title : "Sin Cliente",
+                            description: typeof item.description === 'string' ? item.description : "",
+                            createdAt: item.createdAt || Date.now(),
+                            status: ESTADOS_AVERIA.includes(item.status) ? item.status : "Pendiente",
+                            comments: Array.isArray(item.comments) ? item.comments.filter(c => c && c.id && typeof c.text === 'string').map((c, cIndex) => ({
+                                id: c.id, // Mantener ID original si existe
+                                text: c.text,
+                                createdAt: c.createdAt || Date.now() + cIndex
+                            })) : []
+                        };
+                    }).filter(item => item !== null); // Eliminar inválidos
+                    console.log(`Cargadas ${averias.length} averías válidas.`);
+                } else {
+                    console.warn("Datos en localStorage no son un array. Iniciando vacío.");
+                    averias = [];
+                }
             } catch (error) {
-                console.error("Error al parsear averías de localStorage:", error);
-                averias = []; // Resetear si hay error
+                console.error("Error parseando datos de localStorage:", error);
+                averias = [];
+                localStorage.removeItem(STORAGE_KEY); // Limpiar datos corruptos
             }
         } else {
+            console.log("No se encontraron datos guardados. Iniciando vacío.");
             averias = [];
         }
-        renderAverias(); // Renderizar al cargar
     };
 
-    const guardarAverias = () => {
+    const saveAverias = () => {
+        console.log(`Guardando ${averias.length} averías en localStorage...`);
         try {
-            localStorage.setItem('agendaAverias', JSON.stringify(averias));
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(averias));
         } catch (error) {
-            console.error("Error al guardar averías en localStorage:", error);
-            alert("Error: No se pudieron guardar los cambios. El almacenamiento podría estar lleno.");
+            console.error("Error guardando en localStorage:", error);
+            alert("Error al guardar. El almacenamiento podría estar lleno.");
         }
     };
 
-    // --- FUNCIONES DE RENDERIZADO ---
+    // --- Funciones de Renderizado ---
     const renderAverias = () => {
-        averiasListUl.innerHTML = ''; // Limpiar lista actual
-        const estadoFiltrado = filtroEstado.value;
+        console.log("Renderizando lista de averías...");
+        averiasListContainer.innerHTML = ''; // Limpiar siempre
+        const currentFilter = filterStatusSelect.value;
 
-        const averiasFiltradas = (estadoFiltrado === 'todos')
-            ? averias
-            : averias.filter(a => a.estado === estadoFiltrado);
+        const filtered = averias.filter(a => currentFilter === 'Todos' || a.status === currentFilter);
 
-        // Renderizar de la más nueva a la más vieja (por defecto)
-        // El array 'averias' ya mantiene el orden manual/creación
-        averiasFiltradas.forEach((averia, indexGlobal) => {
-            const templateNode = averiaTemplate.content.cloneNode(true);
-            const listItem = templateNode.querySelector('.averia-item');
-            const tituloEl = listItem.querySelector('.averia-titulo');
-            const fechaEl = listItem.querySelector('.averia-fecha');
-            const estadoSelect = listItem.querySelector('.averia-estado');
-            const descripcionTextarea = listItem.querySelector('.averia-descripcion');
-            const btnSubir = listItem.querySelector('.btn-subir');
-            const btnBajar = listItem.querySelector('.btn-bajar');
-            const comentariosList = listItem.querySelector('.comentarios-list');
-            const formComentario = listItem.querySelector('.form-comentario');
-            const inputComentario = formComentario.querySelector('input[type="text"]');
+        if (filtered.length === 0) {
+            const message = currentFilter === 'Todos' ? "Aún no has añadido ninguna avería." : `No hay averías con el estado "${currentFilter}".`;
+            averiasListContainer.innerHTML = `<p>${message}</p>`;
+            console.log("Renderizado: Mensaje de lista vacía.");
+            return;
+        }
 
-            listItem.dataset.id = averia.id; // Guardar ID en el elemento
-            tituloEl.textContent = averia.titulo;
-            fechaEl.textContent = `Creada: ${new Date(averia.fechaCreacion).toLocaleString()}`;
-            descripcionTextarea.value = averia.descripcion;
-            estadoSelect.value = averia.estado;
+        console.log(`Renderizando ${filtered.length} averías filtradas.`);
+        filtered.forEach(averia => {
+            const originalIndex = averias.findIndex(a => a.id === averia.id);
+            if (originalIndex === -1) {
+                console.warn(`Índice no encontrado para avería ${averia.id}. Saltando renderizado.`);
+                return;
+            }
+            try {
+                const element = createAveriaElement(averia, originalIndex);
+                if (element) averiasListContainer.appendChild(element);
+            } catch (error) {
+                console.error(`Error creando elemento para avería ${averia.id}:`, error);
+            }
+        });
+         console.log("Renderizado de lista completado.");
+    };
 
-            // Ocultar botones de orden en los extremos
-            const indexEnFiltradas = averias.findIndex(a => a.id === averia.id); // Indice real en el array global
-            if (indexEnFiltradas === 0) btnSubir.style.display = 'none';
-            if (indexEnFiltradas === averias.length - 1) btnBajar.style.display = 'none';
+    const createAveriaElement = (averia, index) => {
+        console.log(`Creando elemento para avería ${averia.id} en índice ${index}`);
+        const div = document.createElement('div');
+        div.className = 'averia-item';
+        div.dataset.id = averia.id;
 
+        // --- Crear elementos internos ---
+        const header = document.createElement('div');
+        header.className = 'averia-header';
 
-            // Event Listeners específicos de la avería
-            estadoSelect.addEventListener('change', (e) => handleEstadoChange(averia.id, e.target.value));
-            descripcionTextarea.addEventListener('input', (e) => handleDescripcionChange(averia.id, e.target.value));
-            btnSubir.addEventListener('click', () => moverAveria(averia.id, 'subir'));
-            btnBajar.addEventListener('click', () => moverAveria(averia.id, 'bajar'));
+        const titleElement = document.createElement('h3');
+        titleElement.className = 'averia-title';
+        titleElement.textContent = averia.title;
 
-            // Renderizar comentarios
-            renderComentarios(averia.id, comentariosList);
+        const controlsDiv = document.createElement('div');
+        controlsDiv.className = 'averia-controls';
 
-            // Formulario de nuevo comentario
-            formComentario.addEventListener('submit', (e) => {
-                e.preventDefault();
-                const textoComentario = inputComentario.value.trim();
-                if (textoComentario) {
-                    agregarComentario(averia.id, textoComentario);
-                    inputComentario.value = ''; // Limpiar input
+        const dateSpan = document.createElement('span');
+        dateSpan.className = 'averia-date';
+        dateSpan.textContent = formatDate(averia.createdAt);
+
+        const statusSelect = document.createElement('select');
+        ESTADOS_AVERIA.forEach(estado => {
+            const option = document.createElement('option');
+            option.value = estado;
+            option.textContent = estado;
+            if (averia.status === estado) option.selected = true;
+            statusSelect.appendChild(option);
+        });
+        statusSelect.addEventListener('change', (e) => handleStatusChange(averia.id, e.target.value));
+
+        const actionsDiv = document.createElement('div');
+        actionsDiv.className = 'averia-actions';
+
+        const moveUpButton = document.createElement('button');
+        moveUpButton.className = 'icon-up';
+        moveUpButton.title = 'Subir';
+        moveUpButton.disabled = (index === 0);
+        moveUpButton.addEventListener('click', () => moveAveria(index, 'up'));
+
+        const moveDownButton = document.createElement('button');
+        moveDownButton.className = 'icon-down';
+        moveDownButton.title = 'Bajar';
+        moveDownButton.disabled = (index >= averias.length - 1);
+        moveDownButton.addEventListener('click', () => moveAveria(index, 'down'));
+
+        const descriptionTextarea = document.createElement('textarea');
+        descriptionTextarea.className = 'averia-description';
+        descriptionTextarea.value = averia.description;
+        descriptionTextarea.placeholder = "Editar descripción...";
+        descriptionTextarea.addEventListener('change', (e) => updateDescription(averia.id, e.target.value));
+
+        const commentsSection = document.createElement('div');
+        commentsSection.className = 'comments-section';
+        commentsSection.innerHTML = `
+            <h4>Comentarios</h4>
+            <div class="comments-list"></div>
+            <div class="add-comment-form">
+                <textarea placeholder="Añadir comentario..." class="new-comment-text" rows="1"></textarea>
+                <button class="add-comment-button" title="Añadir Comentario"><span class="icon-add"></span></button>
+            </div>`;
+
+        // --- Ensamblar elementos ---
+        actionsDiv.appendChild(moveUpButton);
+        actionsDiv.appendChild(moveDownButton);
+        controlsDiv.appendChild(statusSelect);
+        controlsDiv.appendChild(dateSpan); // Poner fecha después del select
+        controlsDiv.appendChild(actionsDiv);
+        header.appendChild(titleElement);
+        header.appendChild(controlsDiv);
+        div.appendChild(header);
+        div.appendChild(descriptionTextarea);
+        div.appendChild(commentsSection);
+
+        // Renderizar comentarios y añadir listeners del formulario de comentario
+        const commentsListContainer = commentsSection.querySelector('.comments-list');
+        const addCommentButton = commentsSection.querySelector('.add-comment-button');
+        const newCommentTextarea = commentsSection.querySelector('.new-comment-text');
+
+        if (commentsListContainer) renderComments(averia.id, commentsListContainer);
+
+        if (addCommentButton && newCommentTextarea) {
+            addCommentButton.addEventListener('click', () => {
+                const text = newCommentTextarea.value.trim();
+                if (text) {
+                    addComment(averia.id, text);
+                    newCommentTextarea.value = '';
+                    newCommentTextarea.style.height = 'auto'; newCommentTextarea.rows = 1; // Resetear altura
                 }
             });
+            newCommentTextarea.addEventListener('keypress', (e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); addCommentButton.click(); } });
+            newCommentTextarea.addEventListener('input', () => { // Auto-ajustar altura
+                 newCommentTextarea.style.height = 'auto';
+                 newCommentTextarea.style.height = (newCommentTextarea.scrollHeight) + 'px';
+            });
+        }
 
-            averiasListUl.appendChild(listItem);
-        });
+        return div;
     };
 
-    const renderComentarios = (averiaId, comentariosListElement) => {
-        comentariosListElement.innerHTML = '';
+    const renderComments = (averiaId, container) => {
+        console.log(`Renderizando comentarios para avería ${averiaId}`);
+        container.innerHTML = ''; // Limpiar
         const averia = averias.find(a => a.id === averiaId);
-        if (!averia || !averia.comentarios) return;
+        if (!averia || !Array.isArray(averia.comments) || averia.comments.length === 0) {
+            // container.innerHTML = '<p style="font-size: 0.85em; color: #888;">No hay comentarios.</p>';
+            return;
+        }
 
-        averia.comentarios.forEach(comentario => {
-             const templateNode = comentarioTemplate.content.cloneNode(true);
-             const comentarioItem = templateNode.querySelector('.comentario-item');
-             const fechaEl = comentarioItem.querySelector('.comentario-fecha');
-             const textoEl = comentarioItem.querySelector('.comentario-texto');
-             const btnEditar = comentarioItem.querySelector('.btn-editar-comentario');
-             const btnEliminar = comentarioItem.querySelector('.btn-eliminar-comentario');
+        // Ordenar comentarios (más antiguos primero)
+        const sortedComments = [...averia.comments].sort((a, b) => a.createdAt - b.createdAt);
 
-             comentarioItem.dataset.id = comentario.id;
-             fechaEl.textContent = new Date(comentario.fechaCreacion).toLocaleString();
-             textoEl.textContent = comentario.texto;
+        sortedComments.forEach(comment => {
+            const item = document.createElement('div');
+            item.className = 'comment-item';
+            item.dataset.commentId = comment.id;
 
-             btnEditar.addEventListener('click', () => editarComentario(averiaId, comentario.id));
-             btnEliminar.addEventListener('click', () => eliminarComentario(averiaId, comentario.id));
+            const textSpan = document.createElement('span');
+            textSpan.className = 'comment-text';
+            textSpan.textContent = comment.text;
 
-             comentariosListElement.appendChild(comentarioItem);
+            const actionsDiv = document.createElement('div');
+            actionsDiv.className = 'comment-actions';
+
+            const editBtn = document.createElement('button');
+            editBtn.className = 'icon-edit'; editBtn.title = 'Editar';
+            editBtn.addEventListener('click', () => editCommentPrompt(averiaId, comment.id, comment.text));
+
+            const deleteBtn = document.createElement('button');
+            deleteBtn.className = 'icon-delete'; deleteBtn.title = 'Eliminar';
+            deleteBtn.addEventListener('click', () => deleteComment(averiaId, comment.id));
+
+            actionsDiv.appendChild(editBtn);
+            actionsDiv.appendChild(deleteBtn);
+            item.appendChild(textSpan);
+            item.appendChild(actionsDiv);
+            container.appendChild(item);
         });
+         console.log(`Renderizados ${sortedComments.length} comentarios para ${averiaId}`);
     };
 
+    // --- Funciones de Lógica Principal (Acciones) ---
 
-    // --- MANEJADORES DE EVENTOS Y LÓGICA ---
+    const updateSuggestions = () => {
+        console.log("Actualizando sugerencias...");
+        averiaSuggestionsDatalist.innerHTML = '';
+        const inputText = newAveriaTitleInput.value.toLowerCase();
+        if (inputText.length < 1) return;
 
-    // Crear nueva avería
-    formCrear.addEventListener('submit', (e) => {
-        e.preventDefault();
-        const titulo = tituloInput.value.trim();
-        const descripcion = descripcionInput.value.trim();
+        const uniqueTitles = new Set(
+            averias
+                .filter(a => typeof a.title === 'string' && a.title.toLowerCase().startsWith(inputText))
+                .map(a => a.title) // Obtener títulos originales
+        );
 
-        if (titulo && descripcion) {
-            const nuevaAveria = {
-                id: Date.now(), // ID simple basado en timestamp
-                titulo: titulo,
-                descripcion: descripcion,
-                fechaCreacion: Date.now(),
-                estado: "Pendiente",
-                comentarios: []
-            };
-            // Añadir al principio para que aparezcan arriba
-            averias.unshift(nuevaAveria);
-            guardarAverias();
-            renderAverias();
-            // Limpiar formulario
-            tituloInput.value = '';
-            descripcionInput.value = '';
-        } else {
-            alert('Por favor, completa el título y la descripción.');
+        uniqueTitles.forEach(title => {
+            const option = document.createElement('option');
+            option.value = title;
+            averiaSuggestionsDatalist.appendChild(option);
+        });
+         console.log(`Sugerencias actualizadas: ${uniqueTitles.size} encontradas.`);
+    };
+
+    const addAveria = () => {
+        console.log("Intentando añadir/fusionar avería...");
+        const title = newAveriaTitleInput.value.trim();
+        const newDescriptionText = newAveriaDescriptionInput.value.trim();
+
+        if (!title) {
+            alert('El campo "Cliente" es obligatorio.');
+            newAveriaTitleInput.focus();
+            return;
         }
-    });
 
-    // Cambiar estado
-    const handleEstadoChange = (id, nuevoEstado) => {
-        const index = averias.findIndex(a => a.id === id);
-        if (index !== -1) {
-            if (nuevoEstado === "Cancelada") {
-                if (confirm(`¿Seguro que quieres eliminar permanentemente la avería "${averias[index].titulo}"?`)) {
-                    averias.splice(index, 1); // Eliminar del array
+        const titleLower = title.toLowerCase();
+        const existingAveriaIndex = averias.findIndex(a => a && typeof a.title === 'string' && a.title.toLowerCase() === titleLower);
+
+        let wasMerged = false;
+
+        if (existingAveriaIndex > -1) {
+            // --- Lógica de Fusión ---
+            console.log(`Cliente existente encontrado en índice ${existingAveriaIndex}. Fusionando...`);
+            try {
+                // 1. Extraer avería
+                const [averiaToUpdate] = averias.splice(existingAveriaIndex, 1);
+                if (!averiaToUpdate || typeof averiaToUpdate !== 'object') throw new Error("Error al extraer avería para fusión.");
+
+                // 2. Preparar actualización
+                const now = Date.now();
+                const nowFormatted = formatDate(now); // Usar función de formato consistente
+
+                // 3. Añadir descripción nueva (si existe)
+                if (newDescriptionText) {
+                    const updateHeader = `[Actualización ${nowFormatted}]:`;
+                    averiaToUpdate.description = (averiaToUpdate.description || "") + DESCRIPCION_SEPARATOR + updateHeader + "\n" + newDescriptionText;
+                     console.log("Descripción añadida.");
                 } else {
-                    // Si cancela la eliminación, revertir el select visualmente
-                    renderAverias(); // Volver a renderizar para restaurar el select
-                    return; // No guardar cambios
-                }
-            } else {
-                averias[index].estado = nuevoEstado;
+                     console.log("No hay nueva descripción para añadir.");
+                 }
+
+                // 4. Añadir comentario de actualización (directamente al objeto)
+                const commentText = `[${formatDate(now)}] Nuevo reporte/actualización recibido.`;
+                 if (!Array.isArray(averiaToUpdate.comments)) averiaToUpdate.comments = []; // Asegurar array
+                 averiaToUpdate.comments.push({ id: now, text: commentText, createdAt: now });
+                 console.log("Comentario de actualización añadido al objeto.");
+
+                 // 5. Reinsertar al principio
+                 averias.unshift(averiaToUpdate);
+                 console.log("Avería actualizada movida al principio.");
+                 wasMerged = true;
+                 alert(`Avería para '${averiaToUpdate.title}' actualizada y movida al principio.`);
+
+            } catch (error) {
+                 console.error("Error durante la fusión:", error);
+                 alert("Error al actualizar la avería existente.");
+                 // Considerar restaurar el estado si es posible o recargar
+                 loadAverias(); // Recargar para evitar inconsistencias
             }
-            guardarAverias();
-            renderAverias(); // Volver a renderizar para reflejar cambios y aplicar filtro si es necesario
-        }
-    };
 
-    // Editar descripción
-    const handleDescripcionChange = (id, nuevaDescripcion) => {
-        const index = averias.findIndex(a => a.id === id);
-        if (index !== -1) {
-            averias[index].descripcion = nuevaDescripcion;
-            // Guardar cambios con un pequeño debounce para no saturar localStorage en cada tecla
-            clearTimeout(averias[index].saveTimeout);
-            averias[index].saveTimeout = setTimeout(() => {
-                 guardarAverias();
-            }, 500); // Guarda 500ms después de dejar de escribir
-        }
-    };
-
-    // Mover avería
-    const moverAveria = (id, direccion) => {
-        const index = averias.findIndex(a => a.id === id);
-        if (index === -1) return;
-
-        if (direccion === 'subir' && index > 0) {
-            // Intercambiar con el elemento anterior
-            [averias[index], averias[index - 1]] = [averias[index - 1], averias[index]];
-        } else if (direccion === 'bajar' && index < averias.length - 1) {
-            // Intercambiar con el elemento siguiente
-            [averias[index], averias[index + 1]] = [averias[index + 1], averias[index]];
-        }
-
-        guardarAverias();
-        renderAverias(); // Re-renderizar para mostrar el nuevo orden
-    };
-
-    // Filtrar por estado
-    filtroEstado.addEventListener('change', renderAverias);
-
-    // Comentarios
-    const agregarComentario = (averiaId, texto) => {
-         const index = averias.findIndex(a => a.id === averiaId);
-         if (index !== -1) {
-             const nuevoComentario = {
-                 id: Date.now() + 1, // ID simple para comentario
-                 texto: texto,
-                 fechaCreacion: Date.now()
-             };
-             // Asegurar que el array de comentarios exista
-             if (!Array.isArray(averias[index].comentarios)) {
-                 averias[index].comentarios = [];
-             }
-             averias[index].comentarios.push(nuevoComentario);
-             guardarAverias();
-             renderAverias(); // Re-renderizar para mostrar el nuevo comentario
-         }
-    };
-
-    const editarComentario = (averiaId, comentarioId) => {
-        const averiaIndex = averias.findIndex(a => a.id === averiaId);
-        if (averiaIndex === -1) return;
-        const comentarioIndex = averias[averiaIndex].comentarios.findIndex(c => c.id === comentarioId);
-        if (comentarioIndex === -1) return;
-
-        const comentarioActual = averias[averiaIndex].comentarios[comentarioIndex];
-        const nuevoTexto = prompt("Edita tu comentario:", comentarioActual.texto);
-
-        if (nuevoTexto !== null && nuevoTexto.trim() !== "") {
-            averias[averiaIndex].comentarios[comentarioIndex].texto = nuevoTexto.trim();
-            guardarAverias();
-            renderAverias();
-        } else if (nuevoTexto === "") {
-             alert("El comentario no puede estar vacío.");
-        }
-    };
-
-    const eliminarComentario = (averiaId, comentarioId) => {
-        const averiaIndex = averias.findIndex(a => a.id === averiaId);
-        if (averiaIndex === -1) return;
-
-        if (confirm("¿Seguro que quieres eliminar este comentario?")) {
-             // Filtrar el comentario a eliminar
-             averias[averiaIndex].comentarios = averias[averiaIndex].comentarios.filter(c => c.id !== comentarioId);
-             guardarAverias();
-             renderAverias();
-        }
-    };
-
-
-    // --- MODO OSCURO ---
-    const aplicarTema = (oscuro) => {
-        if (oscuro) {
-            document.body.classList.add('dark-mode');
-            themeToggle.textContent = 'Modo Claro';
         } else {
-            document.body.classList.remove('dark-mode');
-            themeToggle.textContent = 'Modo Oscuro';
+            // --- Crear Nueva Avería ---
+            console.log("Cliente nuevo. Creando nueva avería...");
+            const now = Date.now();
+            const newAveria = {
+                id: now,
+                title: title,
+                description: newDescriptionText, // Solo la nueva descripción
+                createdAt: now,
+                status: "Pendiente",
+                comments: []
+            };
+            averias.unshift(newAveria);
+             console.log("Nueva avería creada y añadida al principio.");
+             wasMerged = false;
         }
-        localStorage.setItem('theme', oscuro ? 'dark' : 'light');
+
+        // --- Acciones Comunes Post-Adición/Fusión ---
+        saveAverias();         // Guardar siempre el nuevo estado del array
+        renderAverias();       // Renderizar siempre la lista actualizada
+        updateSuggestions();   // Actualizar sugerencias
+        // Limpiar formulario
+        newAveriaTitleInput.value = '';
+        newAveriaDescriptionInput.value = '';
+        newAveriaTitleInput.focus();
+        console.log(`Proceso ${wasMerged ? 'de fusión' : 'de creación'} completado.`);
     };
 
-    themeToggle.addEventListener('click', () => {
-        const isDark = document.body.classList.contains('dark-mode');
-        aplicarTema(!isDark);
-    });
+    const updateDescription = (id, newDescription) => {
+        console.log(`Actualizando descripción para ${id}`);
+        const index = averias.findIndex(a => a.id === id);
+        if (index > -1) {
+            averias[index].description = newDescription;
+            saveAverias();
+            console.log("Descripción guardada.");
+            // No re-renderizar todo, el textarea ya muestra el cambio
+        } else {
+             console.warn(`Avería ${id} no encontrada para actualizar descripción.`);
+        }
+    };
 
-    // Aplicar tema guardado al cargar
-    const temaGuardado = localStorage.getItem('theme');
-    if (temaGuardado === 'dark' || (temaGuardado === null && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
-         aplicarTema(true);
-    } else {
-         aplicarTema(false);
-    }
+    const handleStatusChange = (id, newStatus) => {
+        console.log(`Cambio de estado para ${id} a ${newStatus}`);
+        const index = averias.findIndex(a => a.id === id);
+        if (index === -1) {
+            console.warn(`Avería ${id} no encontrada para cambiar estado.`);
+            return;
+        }
 
+        if (newStatus === "Cancelada") {
+            if (confirm('¿Seguro que quieres cancelar y eliminar esta avería?')) {
+                 console.log(`Eliminando avería ${id}`);
+                deleteAveria(id); // deleteAveria guarda y renderiza
+            } else {
+                console.log("Eliminación cancelada. Revirtiendo select.");
+                renderAverias(); // Re-renderizar para restaurar el select al valor guardado
+            }
+        } else {
+            updateStatus(id, newStatus); // updateStatus guarda
+            // Re-renderizar solo si afecta al filtro actual
+            const currentFilter = filterStatusSelect.value;
+            if (currentFilter !== 'Todos' && newStatus !== currentFilter) {
+                console.log("Estado cambiado y filtro activo. Re-renderizando lista.");
+                renderAverias();
+            }
+        }
+    };
 
-    // --- REGISTRO DEL SERVICE WORKER ---
-    if ('serviceWorker' in navigator) {
-        window.addEventListener('load', () => {
-            navigator.serviceWorker.register('/service-worker.js')
-                .then(registration => {
-                    console.log('ServiceWorker registrado con éxito:', registration.scope);
-                })
-                .catch(error => {
-                    console.log('Fallo en el registro del ServiceWorker:', error);
-                });
-        });
-    }
+    const updateStatus = (id, newStatus) => {
+        const index = averias.findIndex(a => a.id === id);
+        if (index > -1) {
+            averias[index].status = newStatus;
+            saveAverias();
+            console.log(`Estado de ${id} actualizado a ${newStatus} y guardado.`);
+        }
+    };
 
-    // --- CARGA INICIAL ---
-    cargarAverias();
-});
-
+    const deleteAveria = (id) => {
+        averias = averias.filter(a => a.id !== id);
+        saveAverias();
+        renderAverias();
+        updateSuggestions(); // Puede que se haya eliminado un tí
