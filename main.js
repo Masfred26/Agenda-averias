@@ -1,1 +1,1 @@
-
+// main.js con mejoras aplicadas
