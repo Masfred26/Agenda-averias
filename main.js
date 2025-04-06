@@ -1,305 +1,383 @@
-<!DOCTYPE html>
-<html lang="es">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Agenda de Averías</title>
-    <link rel="manifest" href="manifest.json">
-    <meta name="theme-color" content="#4A90E2">
-    <style>
-        /* --- Estilos CSS (Incluyendo estilos para <details>) --- */
-        :root {
-            --bg-color: #f4f7f6;
-            --text-color: #333;
-            --card-bg: #ffffff;
-            --border-color: #e0e0e0;
-            --primary-color: #4A90E2;
-            --secondary-color: #f39c12;
-            --danger-color: #e74c3c;
-            --success-color: #2ecc71;
-            --dark-bg: #2c3e50;
-            --dark-text: #ecf0f1;
-            --dark-card-bg: #34495e;
-            --dark-border-color: #4a6179;
-            --button-bg: #e9ecef;
-            --button-text: #495057;
-            --dark-button-bg: #495057;
-            --dark-button-text: #dee2e6;
+// ============================================================
+// main.js - Agenda de Averías (Nueva Versión v3 - Vanilla JS)
+// ============================================================
+
+document.addEventListener('DOMContentLoaded', () => {
+    console.log("DOM Cargado. Iniciando script...");
+
+    // --- OBTENER ELEMENTOS DEL DOM ---
+    // Es crucial que estos IDs coincidan exactamente con el HTML
+    const elements = {
+        app: document.getElementById('app'),
+        newAveriaTitleInput: document.getElementById('new-averia-title'),
+        newAveriaDescriptionInput: document.getElementById('new-averia-description'),
+        addAveriaButton: document.getElementById('add-averia-button'),
+        averiasListContainer: document.getElementById('averias-list'),
+        filterStatusSelect: document.getElementById('filter-status'),
+        themeToggleButton: document.getElementById('theme-toggle'),
+        searchInput: document.getElementById('search-input'),
+        clientSuggestionsDatalist: document.getElementById('client-suggestions'),
+        exportButton: document.getElementById('export-button'),
+        importButton: document.getElementById('import-button'),
+        importFileInput: document.getElementById('import-file'),
+        installPwaButton: document.getElementById('install-pwa-button')
+    };
+
+    // Verificar que todos los elementos esenciales fueron encontrados
+    const essentialElements = ['app', 'newAveriaTitleInput', 'newAveriaDescriptionInput', 'addAveriaButton', 'averiasListContainer', 'filterStatusSelect', 'themeToggleButton', 'searchInput', 'clientSuggestionsDatalist', 'exportButton', 'importButton', 'importFileInput', 'installPwaButton'];
+    for (const key of essentialElements) {
+        if (!elements[key]) {
+            const errorMsg = `Error Crítico: Elemento del DOM no encontrado: #${key}. Revisa el ID en index.html.`;
+            console.error(errorMsg);
+            alert(errorMsg); // Alerta para visibilidad inmediata
+            // Intentar mostrar el error en la página si es posible
+            if (document.body) { document.body.innerHTML = `<h1 style='color:red'>${errorMsg}</h1>`; }
+            return; // Detener ejecución
         }
+    }
+    console.log("Elementos del DOM obtenidos correctamente.");
 
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-            margin: 0;
-            padding: 15px;
-            background-color: var(--bg-color);
-            color: var(--text-color);
-            line-height: 1.6;
-            transition: background-color 0.3s, color 0.3s;
+
+    // --- CONSTANTES Y ESTADO ---
+    const ESTADOS_AVERIA = [
+        "Pendiente", "En proceso", "Pedir recambio", "Recambio pedido",
+        "Recambio en almacén", "Solucionada", "Cancelada" // Cancelada se usa internamente para borrar
+    ];
+    let averias = []; // Array principal de datos
+    let currentSearchTerm = ''; // Estado del filtro de búsqueda
+    let deferredInstallPrompt = null; // Para PWA
+
+
+    // --- FUNCIONES DE DATOS (localStorage) ---
+
+    /** Carga, valida y limpia los datos de averías desde localStorage */
+    function loadAverias() {
+        console.log("Cargando averías...");
+        let dataToLoad = [];
+        const storedData = localStorage.getItem('averias');
+
+        if (storedData) {
+            try {
+                const parsedData = JSON.parse(storedData);
+                if (Array.isArray(parsedData)) {
+                    // Validar y limpiar cada objeto cargado
+                    dataToLoad = parsedData.map(item => ({
+                        id: item.id || Date.now() + Math.random(), // Asegurar ID
+                        title: String(item.title || 'Sin Título').trim(), // Asegurar String y quitar espacios
+                        description: String(item.description || ''), // Asegurar String
+                        createdAt: !isNaN(new Date(item.createdAt)) ? new Date(item.createdAt).getTime() : Date.now(), // Validar y convertir fecha a timestamp
+                        status: ESTADOS_AVERIA.includes(item.status) ? item.status : "Pendiente", // Validar estado
+                        comments: Array.isArray(item.comments) ? item.comments.map(c => ({ // Validar comentarios
+                            id: c.id || Date.now() + Math.random(),
+                            text: String(c.text || ''),
+                            createdAt: !isNaN(new Date(c.createdAt)) ? new Date(c.createdAt).getTime() : Date.now(),
+                        })).sort((a, b) => a.createdAt - b.createdAt) : [] // Ordenar comentarios por si acaso
+                    }));
+                    console.log(`Datos parseados y validados. ${dataToLoad.length} averías.`);
+                } else {
+                    console.warn("Los datos guardados no eran un array. Ignorando.");
+                    localStorage.removeItem('averias'); // Limpiar datos inválidos
+                }
+            } catch (error) {
+                console.error("Error al parsear/validar datos de localStorage:", error);
+                alert("Hubo un error al cargar los datos guardados. Se empezará con una lista vacía.");
+                localStorage.removeItem('averias'); // Limpiar datos corruptos
+            }
         }
+        averias = dataToLoad; // Asignar datos validados (o array vacío)
+        console.log(`Averías cargadas: ${averias.length}`);
+    }
 
-        body.dark-mode {
-            --bg-color: var(--dark-bg);
-            --text-color: var(--dark-text);
-            --card-bg: var(--dark-card-bg);
-            --border-color: var(--dark-border-color);
-            --button-bg: var(--dark-button-bg);
-            --button-text: var(--dark-button-text);
+    /** Guarda el array de averías actual en localStorage */
+    function saveAverias() {
+        try {
+            localStorage.setItem('averias', JSON.stringify(averias));
+            // console.log("Averías guardadas en localStorage."); // Opcional: log frecuente
+        } catch (error) {
+            console.error("Error al guardar en localStorage:", error);
+            alert("Error al guardar los datos. Puede que el almacenamiento esté lleno o que los datos sean demasiado grandes.");
         }
-
-        #app {
-            max-width: 700px;
-            margin: 0 auto;
-        }
-
-        h1 {
-            color: var(--primary-color);
-            text-align: center;
-            margin-bottom: 20px;
-        }
-
-        /* Controles Generales */
-        .controls {
-            display: flex;
-            flex-direction: column;
-            gap: 15px;
-            margin-bottom: 20px;
-            background-color: var(--card-bg);
-            padding: 15px;
-            border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-            border: 1px solid var(--border-color);
-        }
-
-        .control-row {
-             display: flex;
-             justify-content: space-between;
-             align-items: center;
-             flex-wrap: wrap;
-             gap: 10px;
-        }
-
-        .controls label {
-            margin-right: 5px;
-        }
-
-        .controls select,
-        .controls input[type="search"],
-        .controls button,
-        .more-actions-details summary /* Aplicar a summary también */
-         {
-            padding: 8px 12px;
-            border: 1px solid var(--border-color);
-            border-radius: 5px;
-            background-color: var(--button-bg);
-            color: var(--button-text);
-            cursor: pointer;
-            font-size: 0.95em;
-        }
-
-        .controls input[type="search"] {
-             flex-grow: 1;
-             min-width: 150px;
-             background-color: var(--bg-color);
-             color: var(--text-color);
-        }
-         body.dark-mode .controls input[type="search"] {
-             background-color: var(--dark-bg);
-             border-color: var(--dark-border-color);
-         }
+    }
 
 
-        .app-actions {
-            display: flex;
-            gap: 10px;
-            align-items: center; /* Alinear verticalmente */
-            flex-wrap: wrap;
-        }
+    // --- FUNCIONES DE RENDERIZADO Y UI ---
 
-         .app-actions > button { /* Estilo base para botones DIRECTOS dentro de app-actions */
-            background-color: var(--secondary-color);
-            color: white;
-            border: none;
-         }
-
-        #theme-toggle { /* Botón de tema mantiene su estilo */
-            background-color: var(--secondary-color);
-            color: white;
-            border: none;
-        }
-
-        #install-pwa-button {
-            background-color: var(--success-color);
-            color: white;
-            border: none;
-        }
-
-        /* Estilos para el desplegable 'Más Acciones' */
-        .more-actions-details {
-            border: none;
-            padding: 0;
-            background-color: transparent;
-            border-radius: 5px;
-             position: relative;
-        }
-        .more-actions-details summary {
-            /* Hereda estilos de .controls button */
-             list-style: none;
-             display: inline-block;
-             outline: none;
-        }
-         .more-actions-details summary::-webkit-details-marker {
-             display: none;
-         }
-         .more-actions-details summary::after {
-             content: ' ▼';
-             font-size: 0.8em;
-             margin-left: 5px;
-         }
-         .more-actions-details[open] summary::after {
-             content: ' ▲';
-         }
-
-        .more-actions-content {
-             position: absolute;
-             right: 0;
-             top: calc(100% + 5px);
-             background-color: var(--card-bg);
-             border: 1px solid var(--border-color);
-             border-radius: 5px;
-             padding: 10px;
-             display: flex;
-             flex-direction: column;
-             gap: 8px;
-             z-index: 10;
-             min-width: 150px;
-             box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-        }
-         .more-actions-content button {
-             width: 100%;
-             background-color: var(--secondary-color);
-             color: white;
-             border: none;
-             text-align: left;
-             padding: 8px 12px;
-         }
-          body.dark-mode .more-actions-content {
-              background-color: var(--dark-card-bg);
-              border-color: var(--dark-border-color);
-          }
-
-
-        /* Formulario Nueva Avería */
-        .new-averia-form { background-color: var(--card-bg); padding: 15px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin-bottom: 25px; border: 1px solid var(--border-color); }
-        .new-averia-form h2 { margin-top: 0; margin-bottom: 15px; font-size: 1.2em; color: var(--primary-color); }
-        .new-averia-form input[type="text"], .new-averia-form textarea { width: 100%; padding: 10px; margin-bottom: 10px; border: 1px solid var(--border-color); border-radius: 5px; box-sizing: border-box; background-color: var(--bg-color); color: var(--text-color); }
-        body.dark-mode .new-averia-form input[type="text"], body.dark-mode .new-averia-form textarea { background-color: var(--dark-bg); border-color: var(--dark-border-color); }
-        .new-averia-form textarea { min-height: 80px; resize: vertical; }
-        .new-averia-form button { background-color: var(--primary-color); color: white; padding: 10px 15px; border: none; border-radius: 5px; cursor: pointer; font-size: 1em; width: 100%; }
-        .new-averia-form button:hover { opacity: 0.9; }
-
-        /* Lista de Averías */
-        .averia-item { background-color: var(--card-bg); padding: 15px; margin-bottom: 15px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); border: 1px solid var(--border-color); transition: background-color 0.3s, border-color 0.3s; }
-        .averia-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; flex-wrap: wrap; gap: 10px; }
-        .averia-title { font-size: 1.1em; font-weight: bold; margin: 0; flex-grow: 1; word-break: break-word; }
-        .averia-date { font-size: 0.8em; color: #888; }
-        body.dark-mode .averia-date { color: #aaa; }
-        .averia-controls { display: flex; align-items: center; gap: 8px; flex-shrink: 0; flex-wrap: wrap; }
-        .averia-controls select { padding: 5px 8px; border: 1px solid var(--border-color); border-radius: 4px; background-color: var(--bg-color); color: var(--text-color); font-size: 0.9em; }
-        body.dark-mode .averia-controls select { background-color: var(--dark-bg); border-color: var(--dark-border-color); }
-        .averia-description { width: 100%; min-height: 60px; padding: 8px; margin-top: 10px; margin-bottom: 10px; border: 1px solid var(--border-color); border-radius: 5px; box-sizing: border-box; background-color: var(--bg-color); color: var(--text-color); resize: vertical; white-space: pre-wrap; font-size: 0.95em; }
-        body.dark-mode .averia-description { background-color: var(--dark-bg); border-color: var(--dark-border-color); }
-        .averia-actions { display: flex; gap: 5px; }
-        .averia-actions button, .comment-actions button { background: none; border: none; cursor: pointer; padding: 5px; font-size: 1.1em; color: var(--text-color); line-height: 1; }
-        .averia-actions button:disabled { opacity: 0.3; cursor: not-allowed; }
-
-        /* Comentarios */
-        .comments-section { margin-top: 15px; padding-top: 10px; border-top: 1px dashed var(--border-color); }
-        .comments-section h4 { margin-top: 0; margin-bottom: 10px; font-size: 0.95em; }
-        .comment-item { background-color: rgba(0, 0, 0, 0.03); padding: 8px; margin-bottom: 8px; border-radius: 4px; display: flex; justify-content: space-between; align-items: flex-start; font-size: 0.9em; }
-        body.dark-mode .comment-item { background-color: rgba(255, 255, 255, 0.05); }
-        .comment-text { flex-grow: 1; margin-right: 10px; white-space: pre-wrap; word-wrap: break-word; }
-        .comment-actions { display: flex; gap: 5px; flex-shrink: 0; }
-        .add-comment-form { display: flex; gap: 5px; margin-top: 10px; }
-        .add-comment-form textarea { flex-grow: 1; padding: 8px; border: 1px solid var(--border-color); border-radius: 4px; resize: none; height: 35px; box-sizing: border-box; background-color: var(--bg-color); color: var(--text-color); font-size: 0.9em; }
-        body.dark-mode .add-comment-form textarea { background-color: var(--dark-bg); border-color: var(--dark-border-color); }
-        .add-comment-form button { padding: 0 12px; background-color: var(--secondary-color); color: white; border: none; border-radius: 4px; cursor: pointer; height: 35px; box-sizing: border-box; flex-shrink: 0; font-size: 1.2em; line-height: 35px; }
-
-        /* Iconos básicos (emojis) */
-        .icon-up::before { content: "⬆️"; } .icon-down::before { content: "⬇️"; } .icon-edit::before { content: "✏️"; } .icon-delete::before { content: "🗑️"; } .icon-add::before { content: "➕"; }
-
-        /* Indicador Offline */
-        #offline-indicator { display: none; position: fixed; bottom: 10px; left: 10px; background-color: var(--danger-color); color: white; padding: 5px 10px; border-radius: 5px; font-size: 0.8em; z-index: 1000; }
-        body.offline #offline-indicator { display: block; }
-    </style>
-</head>
-<body>
-
-    <div id="app">
-        <h1>Agenda de Averías</h1>
-
-        <div class="controls">
-            <div class="control-row">
-                 <input type="search" id="search-input" placeholder="Buscar cliente o descripción...">
-                 <button id="theme-toggle">Modo Oscuro/Claro</button>
-            </div>
-             <div class="control-row">
-                 <div>
-                     <label for="filter-status">Filtrar por estado:</label>
-                     <select id="filter-status">
-                         <option value="Todos">Todos</option>
-                         </select>
-                 </div>
-                 <div class="app-actions">
-                     <button id="install-pwa-button" style="display: none;">Instalar App</button>
-
-                     <details class="more-actions-details">
-                         <summary>Más Acciones</summary>
-                         <div class="more-actions-content">
-                             <button id="export-button">Exportar JSON</button>
-                             <button id="import-button">Importar JSON</button>
-                             <input type="file" id="import-file" accept=".json" style="display: none;">
-                         </div>
-                     </details>
-                 </div>
-             </div>
-        </div>
-
-        <div class="new-averia-form">
-            <h2>Nueva Avería</h2>
-            <input type="text" id="new-averia-title" placeholder="Cliente" list="client-suggestions" required>
-             <datalist id="client-suggestions">
-                </datalist>
-            <textarea id="new-averia-description" placeholder="Descripción detallada"></textarea>
-            <button id="add-averia-button">Añadir o Actualizar Avería</button>
-        </div>
-
-        <div id="averias-list">
-            </div>
-
-    </div>
-
-    <div id="offline-indicator">Estás offline</div>
-
-    <script src="main.js"></script>
-    <script>
-        // Registro del Service Worker (sin cambios)
-        if ('serviceWorker' in navigator) {
-            window.addEventListener('load', () => {
-                navigator.serviceWorker.register('/service-worker.js')
-                .then(registration => { /* console.log('SW registrado'); */ })
-                .catch(error => { /* console.log('Fallo SW:', error); */ });
+    /** Popula el <select> de filtro por estado */
+    function populateStatusFilter() {
+        console.log("Poblando filtro de estado...");
+        try {
+            // Limpiar opciones previas (excepto "Todos")
+            while (elements.filterStatusSelect.options.length > 1) {
+                elements.filterStatusSelect.remove(1);
+            }
+            // Añadir estados válidos (excluir "Cancelada" del filtro)
+            ESTADOS_AVERIA.forEach(estado => {
+                if (estado !== "Cancelada") {
+                    const option = document.createElement('option');
+                    option.value = estado;
+                    option.textContent = estado;
+                    elements.filterStatusSelect.appendChild(option);
+                }
             });
+            console.log("Filtro de estado poblado.");
+        } catch (error) {
+            console.error("Error en populateStatusFilter:", error);
+            // No alertar para no bloquear
         }
+    }
 
-        // Indicador online/offline básico (sin cambios)
-        function updateOnlineStatus() {
-            if (navigator.onLine) { document.body.classList.remove('offline'); }
-            else { document.body.classList.add('offline'); }
+    /** Actualiza las sugerencias <datalist> para clientes */
+    function updateClientSuggestions() {
+        console.log("Actualizando sugerencias de cliente...");
+        try {
+            elements.clientSuggestionsDatalist.innerHTML = ''; // Limpiar
+            // Usar Set para obtener clientes únicos, filtrar vacíos y ordenar
+            const uniqueClients = [...new Set(averias.map(a => a.title).filter(Boolean))]
+                                  .sort((a, b) => a.localeCompare(b));
+            uniqueClients.forEach(client => {
+                const option = document.createElement('option');
+                option.value = client;
+                elements.clientSuggestionsDatalist.appendChild(option);
+            });
+            console.log(`Sugerencias actualizadas: ${uniqueClients.length} clientes.`);
+        } catch (error) {
+            console.error("Error en updateClientSuggestions:", error);
         }
-        window.addEventListener('online', updateOnlineStatus);
-        window.addEventListener('offline', updateOnlineStatus);
-        updateOnlineStatus(); // Comprobar estado inicial
-    </script>
+    }
 
-</body>
-</html>
+    /** Renderiza la lista completa de averías aplicando filtros */
+    function renderAverias() {
+        console.log("Iniciando renderAverias...");
+        try {
+            elements.averiasListContainer.innerHTML = ''; // Limpiar vista
+
+            // Aplicar filtro de estado
+            const selectedStatus = elements.filterStatusSelect.value;
+            const filteredByStatus = averias.filter(a => selectedStatus === 'Todos' || a.status === selectedStatus);
+
+            // Aplicar filtro de búsqueda (sobre el resultado anterior)
+            const searchTerm = currentSearchTerm.toLowerCase();
+            const filteredFinal = filteredByStatus.filter(a => {
+                const titleMatch = a.title.toLowerCase().includes(searchTerm);
+                const descMatch = a.description.toLowerCase().includes(searchTerm);
+                // Opcional: buscar también en comentarios (podría ser lento si hay muchos)
+                // const commentMatch = a.comments.some(c => c.text.toLowerCase().includes(searchTerm));
+                return titleMatch || descMatch /* || commentMatch */;
+            });
+
+            console.log(`Renderizando ${filteredFinal.length} averías.`);
+
+            // Mostrar mensaje si no hay resultados
+            if (filteredFinal.length === 0) {
+                elements.averiasListContainer.innerHTML = averias.length === 0
+                    ? '<p>No hay averías registradas.</p>'
+                    : '<p>No se encontraron averías que coincidan con los filtros.</p>';
+                return; // Salir si no hay nada que renderizar
+            }
+
+            // Crear y añadir elementos al DOM
+            filteredFinal.forEach(averia => {
+                // Encontrar el índice ORIGINAL en el array 'averias' para los botones de orden
+                const originalIndex = averias.findIndex(original => original.id === averia.id);
+                if (originalIndex !== -1) {
+                    const averiaElement = createAveriaElement(averia, originalIndex);
+                    elements.averiasListContainer.appendChild(averiaElement);
+                } else {
+                    console.error(`Avería con ID ${averia.id} no encontrada en el array original durante renderizado.`);
+                }
+            });
+
+        } catch (error) {
+            console.error("Error durante renderAverias:", error);
+            elements.averiasListContainer.innerHTML = '<p style="color:red;">Error al mostrar la lista de averías.</p>';
+        }
+        console.log("renderAverias completado.");
+    }
+
+    /** Crea el elemento DOM para una sola avería */
+    function createAveriaElement(averia, index) {
+        try {
+            const div = document.createElement('div');
+            div.className = 'averia-item';
+            div.dataset.id = averia.id; // Guardar ID para referencia
+
+            // --- Fecha ---
+            let fechaFormateada = 'Fecha inválida';
+            try {
+                fechaFormateada = new Date(averia.createdAt).toLocaleString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+            } catch (e) { console.error("Error formateando fecha:", e); }
+
+            // --- Dropdown de Estado ---
+            const statusSelect = document.createElement('select');
+            statusSelect.title = "Cambiar estado";
+            ESTADOS_AVERIA.forEach(estado => {
+                if (estado !== "Cancelada") { // No permitir seleccionar Cancelada directamente
+                    const option = document.createElement('option');
+                    option.value = estado;
+                    option.textContent = estado;
+                    if (averia.status === estado) option.selected = true;
+                    statusSelect.appendChild(option);
+                }
+            });
+            const cancelOption = document.createElement('option');
+            cancelOption.value = "ACTION_CANCEL_DELETE"; // Valor especial para la acción
+            cancelOption.textContent = "Cancelar/Eliminar...";
+            statusSelect.appendChild(cancelOption);
+            statusSelect.addEventListener('change', (e) => {
+                if (e.target.value === "ACTION_CANCEL_DELETE") {
+                    handleStatusChange(averia.id, "Cancelada"); // Llama a la lógica de borrado
+                    e.target.value = averia.status; // Revierte visualmente si el usuario cancela el confirm
+                } else {
+                    handleStatusChange(averia.id, e.target.value);
+                }
+            });
+
+            // --- Textarea Descripción ---
+            const descriptionTextarea = document.createElement('textarea');
+            descriptionTextarea.className = 'averia-description';
+            descriptionTextarea.value = averia.description;
+            descriptionTextarea.placeholder = "Añade o edita la descripción...";
+            descriptionTextarea.rows = 3; // Altura inicial
+            descriptionTextarea.addEventListener('change', (e) => updateDescription(averia.id, e.target.value)); // Guardar al perder foco/cambiar
+            descriptionTextarea.addEventListener('input', autoGrowTextarea); // Autoajustar altura
+            requestAnimationFrame(() => autoGrowTextarea({ target: descriptionTextarea })); // Ajustar altura inicial
+
+            // --- Botones de Orden ---
+            const moveUpButton = document.createElement('button');
+            moveUpButton.className = 'icon-up'; moveUpButton.title = 'Subir';
+            moveUpButton.disabled = (index === 0); // Deshabilitar si es el primero
+            moveUpButton.addEventListener('click', () => moveAveria(index, 'up'));
+
+            const moveDownButton = document.createElement('button');
+            moveDownButton.className = 'icon-down'; moveDownButton.title = 'Bajar';
+            moveDownButton.disabled = (index === averias.length - 1); // Deshabilitar si es el último
+            moveDownButton.addEventListener('click', () => moveAveria(index, 'down'));
+
+            // --- Ensamblaje del HTML del Item ---
+            div.innerHTML = `
+                <div class="averia-header">
+                    <h3 class="averia-title"></h3>
+                    <div class="averia-meta">
+                        <span class="averia-date"></span>
+                        <div class="averia-controls">
+                            <div class="averia-actions">
+                                </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="comments-section">
+                    <h4>Comentarios</h4>
+                    <div class="comments-list"></div>
+                    <div class="add-comment-form">
+                        <textarea placeholder="Añadir comentario..." class="new-comment-text" rows="1"></textarea>
+                        <button class="add-comment-button" title="Añadir Comentario"><span class="icon-add"></span></button>
+                    </div>
+                </div>
+            `;
+
+            // --- Inserción de Elementos Dinámicos ---
+            div.querySelector('.averia-title').textContent = averia.title; // Usar textContent por seguridad
+            div.querySelector('.averia-date').textContent = fechaFormateada;
+            div.querySelector('.averia-controls').insertBefore(statusSelect, div.querySelector('.averia-actions'));
+            div.querySelector('.averia-actions').appendChild(moveUpButton);
+            div.querySelector('.averia-actions').appendChild(moveDownButton);
+            div.querySelector('.averia-header').insertAdjacentElement('afterend', descriptionTextarea);
+
+            // --- Comentarios ---
+            renderComments(averia.id, div.querySelector('.comments-list'));
+            const addCommentBtn = div.querySelector('.add-comment-button');
+            const newCommentText = div.querySelector('.new-comment-text');
+            addCommentBtn.addEventListener('click', () => {
+                const text = newCommentText.value.trim();
+                if (text) addComment(averia.id, text);
+                newCommentText.value = ''; // Limpiar
+                newCommentText.style.height = '40px'; // Resetear altura
+            });
+            newCommentText.addEventListener('keypress', (e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); addCommentBtn.click(); }});
+            newCommentText.addEventListener('input', autoGrowTextarea);
+
+            return div; // Devuelve el elemento completo
+
+        } catch (error) {
+            console.error(`Error creando elemento para avería ID ${averia?.id}:`, error);
+            // Crear un div de error para este item específico
+            const errorDiv = document.createElement('div');
+            errorDiv.style.cssText = 'padding: 10px; margin-bottom: 15px; border: 1px dashed red; color: red;';
+            errorDiv.textContent = `Error al mostrar la avería: ${averia?.title || `ID ${averia?.id}`}.`;
+            return errorDiv;
+        }
+    }
+
+    /** Ajusta altura de textareas automáticamente */
+    function autoGrowTextarea(event) {
+        try {
+            const textarea = event.target;
+            if (textarea && typeof textarea.scrollHeight !== 'undefined') {
+                textarea.style.height = 'auto'; // Necesario para recalcular bien
+                textarea.style.height = (textarea.scrollHeight) + 'px';
+            }
+        } catch(e) { console.warn("Error en autoGrowTextarea:", e); }
+    }
+
+    /** Renderiza los comentarios de una avería */
+    function renderComments(averiaId, container) {
+        try {
+            container.innerHTML = ''; // Limpiar
+            const averia = averias.find(a => a.id === averiaId);
+
+            if (!averia || !Array.isArray(averia.comments) || averia.comments.length === 0) {
+                container.innerHTML = '<p style="font-size: 0.9em; color: #888;">(Sin comentarios)</p>';
+                return;
+            }
+
+            // Ordenar comentarios (ya deberían estar ordenados por fecha al cargar/añadir)
+            const sortedComments = [...averia.comments].sort((a, b) => a.createdAt - b.createdAt);
+
+            sortedComments.forEach(comment => {
+                const itemDiv = document.createElement('div');
+                itemDiv.className = 'comment-item';
+                itemDiv.dataset.commentId = comment.id;
+
+                itemDiv.innerHTML = `
+                    <span class="comment-text"></span>
+                    <div class="comment-actions">
+                        <button class="icon-edit" title="Editar comentario"></button>
+                        <button class="icon-delete" title="Eliminar comentario"></button>
+                    </div>
+                `;
+                itemDiv.querySelector('.comment-text').textContent = comment.text;
+                itemDiv.querySelector('.icon-edit').addEventListener('click', () => editCommentPrompt(averiaId, comment.id, comment.text));
+                itemDiv.querySelector('.icon-delete').addEventListener('click', () => deleteComment(averiaId, comment.id));
+                container.appendChild(itemDiv);
+            });
+        } catch (error) {
+            console.error(`Error renderizando comentarios para avería ${averiaId}:`, error);
+            container.innerHTML = '<p style="color:red;">Error al mostrar comentarios.</p>';
+        }
+    }
+
+
+    // --- LÓGICA PRINCIPAL DE MANIPULACIÓN DE AVERÍAS ---
+
+    /** Añade nueva o actualiza existente (con fusión de descripción y moviendo al inicio) */
+    function addOrUpdateAveria() {
+        console.log("Intentando añadir/actualizar avería...");
+        try {
+            const title = elements.newAveriaTitleInput.value.trim();
+            const description = elements.newAveriaDescriptionInput.value.trim();
+
+            if (!title) {
+                alert('El campo "Cliente" es obligatorio.');
+                elements.newAveriaTitleInput.focus();
+                return;
+            }
+
+            const now = Date.now();
+            const clientLower = title.toLowerCase();
+            const existingIndex = averias.findIndex(a => a.title.toLowerCase() === clientLower);
+
+            if (existingIndex > -1) {
+                // --- ACTUALIZAR (Fusionar y Mover al Inicio) ---
+                console.log(`Cliente encontrado: "${title}". Actualizando...`);
+                // 1. Obtener y remover la avería existente del array
+                const averiaToUpdate = averias.splice(existingIndex, 
