@@ -1,11 +1,11 @@
 {
   "name": "Agenda de Averías",
   "short_name": "Averías",
-  "description": "Aplicación para registrar y gestionar averías técnicas.",
+  "description": "Aplicación PWA para registrar y gestionar averías técnicas.",
   "start_url": ".",
   "display": "standalone",
   "background_color": "#f4f7f6",
-  "theme_color": "#4A90E2",
+  "theme_color": "#007bff",
   "icons": [
     {
       "src": "icons/icon-192x192.png",
@@ -17,7 +17,7 @@
       "src": "icons/icon-512x512.png",
       "sizes": "512x512",
       "type": "image/png",
-       "purpose": "any maskable"
+      "purpose": "any maskable"
     }
   ]
 }
