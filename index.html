@@ -3,28 +3,36 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Agenda de Averías</title>
+    <title>Agenda de Averías (v.Nueva)</title>
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#4A90E2">
+    <link rel="icon" href="icons/icon-192x192.png" type="image/png">
+
     <style>
-        /* --- Estilos CSS (Incluyendo estilos para <details>) --- */
+        /* === ESTILOS GLOBALES Y VARIABLES === */
         :root {
             --bg-color: #f4f7f6;
             --text-color: #333;
             --card-bg: #ffffff;
             --border-color: #e0e0e0;
-            --primary-color: #4A90E2;
-            --secondary-color: #f39c12;
-            --danger-color: #e74c3c;
-            --success-color: #2ecc71;
-            --dark-bg: #2c3e50;
-            --dark-text: #ecf0f1;
-            --dark-card-bg: #34495e;
-            --dark-border-color: #4a6179;
+            --input-bg: #ffffff; /* Fondo inputs claro */
+            --input-border: #ccc;
+            --primary-color: #007bff; /* Azul más estándar */
+            --secondary-color: #6c757d; /* Gris secundario */
+            --danger-color: #dc3545;
+            --success-color: #28a745;
+            --warning-color: #ffc107; /* Naranja/amarillo para PWA/Export/Import */
+            --dark-bg: #212529;
+            --dark-text: #dee2e6;
+            --dark-card-bg: #343a40;
+            --dark-border-color: #495057;
+            --dark-input-bg: #495057; /* Fondo inputs oscuro */
+            --dark-input-border: #6c757d;
             --button-bg: #e9ecef;
             --button-text: #495057;
             --dark-button-bg: #495057;
             --dark-button-text: #dee2e6;
+            --shadow-color: rgba(0, 0, 0, 0.1);
         }
 
         body {
@@ -35,6 +43,7 @@
             color: var(--text-color);
             line-height: 1.6;
             transition: background-color 0.3s, color 0.3s;
+            font-size: 16px; /* Base font size */
         }
 
         body.dark-mode {
@@ -42,193 +51,188 @@
             --text-color: var(--dark-text);
             --card-bg: var(--dark-card-bg);
             --border-color: var(--dark-border-color);
+            --input-bg: var(--dark-input-bg);
+            --input-border: var(--dark-input-border);
             --button-bg: var(--dark-button-bg);
             --button-text: var(--dark-button-text);
+            --shadow-color: rgba(255, 255, 255, 0.1);
         }
 
         #app {
-            max-width: 700px;
-            margin: 0 auto;
+            max-width: 750px; /* Un poco más de ancho */
+            margin: 10px auto 30px auto; /* Margen inferior */
         }
 
         h1 {
             color: var(--primary-color);
             text-align: center;
-            margin-bottom: 20px;
+            margin-bottom: 25px;
+            font-size: 1.8em;
         }
 
-        /* Controles Generales */
+        /* === ÁREA DE CONTROLES === */
         .controls {
+            background-color: var(--card-bg);
+            padding: 15px;
+            margin-bottom: 25px;
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+            box-shadow: 0 2px 5px var(--shadow-color);
             display: flex;
             flex-direction: column;
             gap: 15px;
-            margin-bottom: 20px;
-            background-color: var(--card-bg);
-            padding: 15px;
-            border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-            border: 1px solid var(--border-color);
         }
 
         .control-row {
-             display: flex;
-             justify-content: space-between;
-             align-items: center;
-             flex-wrap: wrap;
-             gap: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 10px;
         }
 
-        .controls label {
-            margin-right: 5px;
-        }
+        .controls label { margin-right: 5px; font-size: 0.9em; }
 
         .controls select,
         .controls input[type="search"],
         .controls button,
-        .more-actions-details summary /* Aplicar a summary también */
-         {
-            padding: 8px 12px;
-            border: 1px solid var(--border-color);
-            border-radius: 5px;
+        .more-actions-details summary {
+            padding: 9px 14px; /* Ligeramente más padding */
+            border: 1px solid var(--input-border);
+            border-radius: 6px; /* Bordes un poco más suaves */
             background-color: var(--button-bg);
             color: var(--button-text);
             cursor: pointer;
             font-size: 0.95em;
+            transition: background-color 0.2s, border-color 0.2s;
         }
+         .controls select:hover, .controls button:hover, .more-actions-details summary:hover {
+             border-color: var(--primary-color);
+         }
 
         .controls input[type="search"] {
-             flex-grow: 1;
-             min-width: 150px;
-             background-color: var(--bg-color);
-             color: var(--text-color);
+            flex-grow: 1;
+            min-width: 180px;
+            background-color: var(--input-bg);
+            color: var(--text-color);
+            border: 1px solid var(--input-border); /* Borde consistente */
         }
-         body.dark-mode .controls input[type="search"] {
-             background-color: var(--dark-bg);
-             border-color: var(--dark-border-color);
-         }
-
-
-        .app-actions {
-            display: flex;
-            gap: 10px;
-            align-items: center; /* Alinear verticalmente */
-            flex-wrap: wrap;
-        }
-
-         .app-actions > button { /* Estilo base para botones DIRECTOS dentro de app-actions */
-            background-color: var(--secondary-color);
-            color: white;
-            border: none;
-         }
-
-        #theme-toggle { /* Botón de tema mantiene su estilo */
-            background-color: var(--secondary-color);
-            color: white;
-            border: none;
-        }
-
-        #install-pwa-button {
-            background-color: var(--success-color);
-            color: white;
-            border: none;
-        }
-
-        /* Estilos para el desplegable 'Más Acciones' */
-        .more-actions-details {
-            border: none;
-            padding: 0;
-            background-color: transparent;
-            border-radius: 5px;
-             position: relative;
-        }
-        .more-actions-details summary {
-            /* Hereda estilos de .controls button */
-             list-style: none;
-             display: inline-block;
+         .controls input[type="search"]:focus {
              outline: none;
-        }
-         .more-actions-details summary::-webkit-details-marker {
-             display: none;
-         }
-         .more-actions-details summary::after {
-             content: ' ▼';
-             font-size: 0.8em;
-             margin-left: 5px;
-         }
-         .more-actions-details[open] summary::after {
-             content: ' ▲';
+             border-color: var(--primary-color);
+             box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
          }
 
+        .app-actions { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+        .app-actions > button, /* Botones directos (Instalar, Tema) */
+        #theme-toggle /* Asegurar estilo para tema */
+         {
+            background-color: var(--secondary-color);
+            color: white;
+            border: none;
+        }
+        #install-pwa-button { background-color: var(--success-color); color: white; border: none; }
+        #theme-toggle { background-color: var(--warning-color); color: #333; border: none; } /* Tema con Naranja */
+
+        /* Desplegable 'Más Acciones' */
+        .more-actions-details { border: none; padding: 0; background-color: transparent; border-radius: 6px; position: relative; }
+        .more-actions-details summary { /* Hereda estilos base */ list-style: none; display: inline-block; outline: none; background-color: var(--button-bg); border: 1px solid var(--input-border); }
+        .more-actions-details summary::-webkit-details-marker { display: none; }
+        .more-actions-details summary::after { content: ' ▼'; font-size: 0.8em; margin-left: 5px; }
+        .more-actions-details[open] summary::after { content: ' ▲'; }
         .more-actions-content {
-             position: absolute;
-             right: 0;
-             top: calc(100% + 5px);
-             background-color: var(--card-bg);
-             border: 1px solid var(--border-color);
-             border-radius: 5px;
-             padding: 10px;
-             display: flex;
-             flex-direction: column;
-             gap: 8px;
-             z-index: 10;
-             min-width: 150px;
-             box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+            position: absolute; right: 0; top: calc(100% + 5px);
+            background-color: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 6px; padding: 10px; display: flex; flex-direction: column;
+            gap: 8px; z-index: 10; min-width: 160px; /* Ancho mínimo */
+            box-shadow: 0 5px 15px var(--shadow-color);
         }
-         .more-actions-content button {
-             width: 100%;
-             background-color: var(--secondary-color);
-             color: white;
-             border: none;
-             text-align: left;
-             padding: 8px 12px;
+         .more-actions-content button { /* Botones dentro del desplegable */
+            width: 100%; background-color: var(--warning-color); color: #333; border: none;
+            text-align: left; padding: 9px 14px; border-radius: 4px; /* Borde interno */
          }
-          body.dark-mode .more-actions-content {
-              background-color: var(--dark-card-bg);
-              border-color: var(--dark-border-color);
-          }
+         body.dark-mode .more-actions-content { background-color: var(--dark-card-bg); border-color: var(--dark-border-color); }
+         body.dark-mode .more-actions-content button { background-color: var(--warning-color); color: #333;} /* Mantener botones claros */
 
 
-        /* Formulario Nueva Avería */
-        .new-averia-form { background-color: var(--card-bg); padding: 15px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin-bottom: 25px; border: 1px solid var(--border-color); }
-        .new-averia-form h2 { margin-top: 0; margin-bottom: 15px; font-size: 1.2em; color: var(--primary-color); }
-        .new-averia-form input[type="text"], .new-averia-form textarea { width: 100%; padding: 10px; margin-bottom: 10px; border: 1px solid var(--border-color); border-radius: 5px; box-sizing: border-box; background-color: var(--bg-color); color: var(--text-color); }
-        body.dark-mode .new-averia-form input[type="text"], body.dark-mode .new-averia-form textarea { background-color: var(--dark-bg); border-color: var(--dark-border-color); }
-        .new-averia-form textarea { min-height: 80px; resize: vertical; }
-        .new-averia-form button { background-color: var(--primary-color); color: white; padding: 10px 15px; border: none; border-radius: 5px; cursor: pointer; font-size: 1em; width: 100%; }
-        .new-averia-form button:hover { opacity: 0.9; }
+        /* === FORMULARIO NUEVA AVERÍA === */
+        .new-averia-form { background-color: var(--card-bg); padding: 20px; border-radius: 8px; box-shadow: 0 2px 5px var(--shadow-color); margin-bottom: 30px; border: 1px solid var(--border-color); }
+        .new-averia-form h2 { margin-top: 0; margin-bottom: 20px; font-size: 1.4em; color: var(--primary-color); border-bottom: 1px solid var(--border-color); padding-bottom: 10px; }
+        .new-averia-form input[type="text"], .new-averia-form textarea {
+            width: 100%; padding: 12px; margin-bottom: 15px; border: 1px solid var(--input-border);
+            border-radius: 6px; box-sizing: border-box; background-color: var(--input-bg);
+            color: var(--text-color); font-size: 1em; transition: border-color 0.2s, box-shadow 0.2s;
+        }
+        .new-averia-form input[type="text"]:focus, .new-averia-form textarea:focus {
+            outline: none; border-color: var(--primary-color);
+            box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
+        }
+        .new-averia-form textarea { min-height: 90px; resize: vertical; }
+        .new-averia-form button {
+            background-color: var(--primary-color); color: white; padding: 12px 20px;
+            border: none; border-radius: 6px; cursor: pointer; font-size: 1.1em; width: 100%;
+            transition: opacity 0.2s;
+        }
+        .new-averia-form button:hover { opacity: 0.85; }
 
-        /* Lista de Averías */
-        .averia-item { background-color: var(--card-bg); padding: 15px; margin-bottom: 15px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); border: 1px solid var(--border-color); transition: background-color 0.3s, border-color 0.3s; }
-        .averia-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; flex-wrap: wrap; gap: 10px; }
-        .averia-title { font-size: 1.1em; font-weight: bold; margin: 0; flex-grow: 1; word-break: break-word; }
-        .averia-date { font-size: 0.8em; color: #888; }
-        body.dark-mode .averia-date { color: #aaa; }
-        .averia-controls { display: flex; align-items: center; gap: 8px; flex-shrink: 0; flex-wrap: wrap; }
-        .averia-controls select { padding: 5px 8px; border: 1px solid var(--border-color); border-radius: 4px; background-color: var(--bg-color); color: var(--text-color); font-size: 0.9em; }
-        body.dark-mode .averia-controls select { background-color: var(--dark-bg); border-color: var(--dark-border-color); }
-        .averia-description { width: 100%; min-height: 60px; padding: 8px; margin-top: 10px; margin-bottom: 10px; border: 1px solid var(--border-color); border-radius: 5px; box-sizing: border-box; background-color: var(--bg-color); color: var(--text-color); resize: vertical; white-space: pre-wrap; font-size: 0.95em; }
-        body.dark-mode .averia-description { background-color: var(--dark-bg); border-color: var(--dark-border-color); }
+        /* === LISTA DE AVERÍAS === */
+        #averias-list { /* Contenedor principal */ }
+        .averia-item {
+            background-color: var(--card-bg); padding: 15px 20px; margin-bottom: 18px; /* Más separación */
+            border-radius: 8px; box-shadow: 0 2px 5px var(--shadow-color); border: 1px solid var(--border-color);
+            transition: background-color 0.3s, border-color 0.3s;
+        }
+        .averia-header { display: flex; justify-content: space-between; align-items: flex-start; /* Alinear arriba */ margin-bottom: 12px; flex-wrap: wrap; gap: 10px; }
+        .averia-title { font-size: 1.25em; font-weight: 600; margin: 0; flex-grow: 1; word-break: break-word; margin-right: 15px; } /* Título más grande */
+        .averia-meta { display: flex; flex-direction: column; align-items: flex-end; gap: 5px; text-align: right; } /* Agrupar fecha y controles */
+        .averia-date { font-size: 0.8em; color: var(--secondary-color); white-space: nowrap; }
+        body.dark-mode .averia-date { color: #adb5bd; }
+        .averia-controls { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+        .averia-controls select { padding: 6px 10px; font-size: 0.85em; border-radius: 4px; border: 1px solid var(--input-border); background-color: var(--input-bg); color: var(--text-color); }
         .averia-actions { display: flex; gap: 5px; }
-        .averia-actions button, .comment-actions button { background: none; border: none; cursor: pointer; padding: 5px; font-size: 1.1em; color: var(--text-color); line-height: 1; }
-        .averia-actions button:disabled { opacity: 0.3; cursor: not-allowed; }
+        .averia-actions button, .comment-actions button { background: none; border: none; cursor: pointer; padding: 5px; font-size: 1.2em; /* Iconos más grandes */ color: var(--secondary-color); line-height: 1; transition: color 0.2s; }
+        .averia-actions button:hover, .comment-actions button:hover { color: var(--primary-color); }
+        .averia-actions button:disabled { opacity: 0.3; cursor: not-allowed; color: var(--secondary-color); } /* Asegurar color disable */
 
-        /* Comentarios */
-        .comments-section { margin-top: 15px; padding-top: 10px; border-top: 1px dashed var(--border-color); }
-        .comments-section h4 { margin-top: 0; margin-bottom: 10px; font-size: 0.95em; }
-        .comment-item { background-color: rgba(0, 0, 0, 0.03); padding: 8px; margin-bottom: 8px; border-radius: 4px; display: flex; justify-content: space-between; align-items: flex-start; font-size: 0.9em; }
-        body.dark-mode .comment-item { background-color: rgba(255, 255, 255, 0.05); }
-        .comment-text { flex-grow: 1; margin-right: 10px; white-space: pre-wrap; word-wrap: break-word; }
-        .comment-actions { display: flex; gap: 5px; flex-shrink: 0; }
-        .add-comment-form { display: flex; gap: 5px; margin-top: 10px; }
-        .add-comment-form textarea { flex-grow: 1; padding: 8px; border: 1px solid var(--border-color); border-radius: 4px; resize: none; height: 35px; box-sizing: border-box; background-color: var(--bg-color); color: var(--text-color); font-size: 0.9em; }
-        body.dark-mode .add-comment-form textarea { background-color: var(--dark-bg); border-color: var(--dark-border-color); }
-        .add-comment-form button { padding: 0 12px; background-color: var(--secondary-color); color: white; border: none; border-radius: 4px; cursor: pointer; height: 35px; box-sizing: border-box; flex-shrink: 0; font-size: 1.2em; line-height: 35px; }
+        .averia-description {
+            width: 100%; min-height: 70px; padding: 10px; margin-top: 5px; margin-bottom: 15px; /* Más margen abajo */
+            border: 1px solid var(--input-border); border-radius: 6px; box-sizing: border-box;
+            background-color: var(--input-bg); color: var(--text-color); resize: vertical;
+            white-space: pre-wrap; font-size: 1em; line-height: 1.5;
+        }
+        .averia-description:focus { outline: none; border-color: var(--primary-color); box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25); }
 
-        /* Iconos básicos (emojis) */
-        .icon-up::before { content: "⬆️"; } .icon-down::before { content: "⬇️"; } .icon-edit::before { content: "✏️"; } .icon-delete::before { content: "🗑️"; } .icon-add::before { content: "➕"; }
+        /* === SECCIÓN DE COMENTARIOS === */
+        .comments-section { margin-top: 15px; padding-top: 15px; border-top: 1px dashed var(--border-color); }
+        .comments-section h4 { margin-top: 0; margin-bottom: 12px; font-size: 1em; font-weight: 600; color: var(--secondary-color); }
+        body.dark-mode .comments-section h4 { color: #adb5bd; }
+        .comments-list { margin-bottom: 15px; } /* Espacio antes del form de añadir */
+        .comment-item { background-color: rgba(0, 0, 0, 0.03); padding: 10px 12px; margin-bottom: 8px; border-radius: 6px; display: flex; justify-content: space-between; align-items: flex-start; font-size: 0.95em; border: 1px solid var(--border-color); }
+        body.dark-mode .comment-item { background-color: rgba(255, 255, 255, 0.04); border-color: var(--dark-border-color); }
+        .comment-text { flex-grow: 1; margin-right: 10px; white-space: pre-wrap; word-wrap: break-word; line-height: 1.5; }
+        .comment-actions { display: flex; gap: 8px; flex-shrink: 0; }
+        .add-comment-form { display: flex; gap: 8px; }
+        .add-comment-form textarea {
+            flex-grow: 1; padding: 9px 12px; border: 1px solid var(--input-border); border-radius: 6px;
+            resize: none; height: 40px; /* Altura inicial consistente */ box-sizing: border-box;
+            background-color: var(--input-bg); color: var(--text-color); font-size: 0.95em; line-height: 1.4;
+        }
+         .add-comment-form textarea:focus { outline: none; border-color: var(--primary-color); box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25); }
+        .add-comment-form button {
+            padding: 0 15px; background-color: var(--secondary-color); color: white; border: none;
+            border-radius: 6px; cursor: pointer; height: 40px; box-sizing: border-box;
+            flex-shrink: 0; font-size: 1.3em; line-height: 40px; transition: opacity 0.2s;
+        }
+         .add-comment-form button:hover { opacity: 0.85; }
+
+        /* Iconos básicos */
+        .icon-up::before { content: "⬆️"; } .icon-down::before { content: "⬇️"; }
+        .icon-edit::before { content: "✏️"; } .icon-delete::before { content: "🗑️"; }
+        .icon-add::before { content: "➕"; }
 
         /* Indicador Offline */
-        #offline-indicator { display: none; position: fixed; bottom: 10px; left: 10px; background-color: var(--danger-color); color: white; padding: 5px 10px; border-radius: 5px; font-size: 0.8em; z-index: 1000; }
+        #offline-indicator { display: none; position: fixed; bottom: 10px; left: 10px; background-color: var(--danger-color); color: white; padding: 8px 12px; border-radius: 6px; font-size: 0.9em; z-index: 1000; box-shadow: 0 2px 5px rgba(0,0,0,0.2); }
         body.offline #offline-indicator { display: block; }
     </style>
 </head>
@@ -240,23 +244,20 @@
         <div class="controls">
             <div class="control-row">
                  <input type="search" id="search-input" placeholder="Buscar cliente o descripción...">
-                 <button id="theme-toggle">Modo Oscuro/Claro</button>
-            </div>
+                 <button id="theme-toggle" title="Cambiar Tema">☀️/🌙</button> </div>
              <div class="control-row">
                  <div>
-                     <label for="filter-status">Filtrar por estado:</label>
-                     <select id="filter-status">
+                     <label for="filter-status">Filtrar:</label>
+                     <select id="filter-status" title="Filtrar por estado">
                          <option value="Todos">Todos</option>
                          </select>
                  </div>
                  <div class="app-actions">
-                     <button id="install-pwa-button" style="display: none;">Instalar App</button>
-
+                     <button id="install-pwa-button" style="display: none;" title="Instalar Aplicación">Instalar App</button>
                      <details class="more-actions-details">
-                         <summary>Más Acciones</summary>
-                         <div class="more-actions-content">
-                             <button id="export-button">Exportar JSON</button>
-                             <button id="import-button">Importar JSON</button>
+                         <summary title="Más Acciones">Acciones</summary> <div class="more-actions-content">
+                             <button id="export-button">Exportar Datos (JSON)</button>
+                             <button id="import-button">Importar Datos (JSON)</button>
                              <input type="file" id="import-file" accept=".json" style="display: none;">
                          </div>
                      </details>
@@ -265,40 +266,37 @@
         </div>
 
         <div class="new-averia-form">
-            <h2>Nueva Avería</h2>
-            <input type="text" id="new-averia-title" placeholder="Cliente" list="client-suggestions" required>
+            <h2>Nueva Avería o Actualización</h2>
+            <input type="text" id="new-averia-title" placeholder="Cliente (requerido)" list="client-suggestions" required>
              <datalist id="client-suggestions">
                 </datalist>
-            <textarea id="new-averia-description" placeholder="Descripción detallada"></textarea>
-            <button id="add-averia-button">Añadir o Actualizar Avería</button>
+            <textarea id="new-averia-description" placeholder="Descripción detallada de la nueva intervención"></textarea>
+            <button id="add-averia-button">Añadir / Actualizar Avería</button>
         </div>
 
         <div id="averias-list">
-            </div>
+            <p>Cargando averías...</p> </div>
 
     </div>
 
     <div id="offline-indicator">Estás offline</div>
 
     <script src="main.js"></script>
+
     <script>
-        // Registro del Service Worker (sin cambios)
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
                 navigator.serviceWorker.register('/service-worker.js')
-                .then(registration => { /* console.log('SW registrado'); */ })
-                .catch(error => { /* console.log('Fallo SW:', error); */ });
+                .then(registration => { console.log('SW registrado:', registration.scope); })
+                .catch(error => { console.error('Fallo SW:', error); });
             });
         }
-
-        // Indicador online/offline básico (sin cambios)
         function updateOnlineStatus() {
-            if (navigator.onLine) { document.body.classList.remove('offline'); }
-            else { document.body.classList.add('offline'); }
+            document.body.classList.toggle('offline', !navigator.onLine);
         }
         window.addEventListener('online', updateOnlineStatus);
         window.addEventListener('offline', updateOnlineStatus);
-        updateOnlineStatus(); // Comprobar estado inicial
+        updateOnlineStatus();
     </script>
 
 </body>
