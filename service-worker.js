@@ -1,4 +1,4 @@
-// Service Worker v1
+// Service Worker v1 (Versión Limpia)
 
 const CACHE_NAME = 'agenda-averias-cache-v1';
 // Archivos esenciales para que la app funcione offline (App Shell)
@@ -10,13 +10,11 @@ const urlsToCache = [
   'icons/icon-192x192.png',
   'icons/icon-512x512.png'
   // NO incluyas el propio service-worker.js en la lista
-  // Si tuvieras un style.css externo, añádelo aquí.
 ];
 
 // Evento 'install': Se dispara cuando el SW se instala por primera vez.
 self.addEventListener('install', event => {
   console.log('SW: Instalando...');
-  // Espera hasta que la promesa se resuelva
   event.waitUntil(
     caches.open(CACHE_NAME) // Abre (o crea) la caché especificada
       .then(cache => {
@@ -25,8 +23,7 @@ self.addEventListener('install', event => {
       })
       .then(() => {
         console.log('SW: App Shell cacheado con éxito.');
-        // Forza la activación del nuevo SW inmediatamente sin esperar a que
-        // las pestañas antiguas se cierren (útil para actualizaciones rápidas)
+        // Forza la activación del nuevo SW inmediatamente
         return self.skipWaiting();
       })
       .catch(error => {
@@ -36,7 +33,7 @@ self.addEventListener('install', event => {
 });
 
 // Evento 'activate': Se dispara después de 'install' cuando el SW toma control.
-// Es un buen lugar para limpiar caches antiguas.
+// Limpia caches antiguas.
 self.addEventListener('activate', event => {
   console.log('SW: Activando...');
   event.waitUntil(
@@ -58,46 +55,35 @@ self.addEventListener('activate', event => {
   );
 });
 
-// Evento 'fetch': Se dispara cada vez que la página (o el propio SW)
-// realiza una petición de red (GET, POST, etc.).
+// Evento 'fetch': Intercepta peticiones GET. Estrategia: Cache First.
 self.addEventListener('fetch', event => {
-  // Solo nos interesan las peticiones GET para cachear el App Shell
   if (event.request.method !== 'GET') {
-    return; // Deja pasar otras peticiones (POST, etc.) sin interceptar
+    return; // Ignorar otras peticiones
   }
 
-  // Estrategia: Cache First (para el App Shell)
-  // Intenta responder desde la caché primero.
   event.respondWith(
-    caches.match(event.request) // Busca la petición en la caché
+    caches.match(event.request) // Busca en caché
       .then(response => {
-        // Si se encuentra en caché, devuelve la respuesta cacheada
+        // Si está en caché, devolverla
         if (response) {
-          // console.log('SW: Sirviendo desde caché:', event.request.url); // Log opcional
+          // console.log('SW: Sirviendo desde caché:', event.request.url);
           return response;
         }
 
-        // Si no está en caché, intenta obtenerla de la red
-        // console.log('SW: No en caché, obteniendo desde red:', event.request.url); // Log opcional
+        // Si no está en caché, ir a la red
+        // console.log('SW: No en caché, obteniendo desde red:', event.request.url);
         return fetch(event.request)
           .then(networkResponse => {
-            // (Opcional) Podrías añadir aquí lógica para cachear nuevas
-            // peticiones que no sean del App Shell si quisieras, pero
-            // para esta app simple no es estrictamente necesario.
-            // Ejemplo: cachear imágenes o fuentes bajo demanda.
-            // IMPORTANTE: Clona la respuesta si vas a guardarla Y devolverla.
-            // const responseToCache = networkResponse.clone();
-            // caches.open(CACHE_NAME).then(cache => cache.put(event.request, responseToCache));
-
-            return networkResponse; // Devolver la respuesta de red al navegador
+            // (Opcional: podríamos cachear aquí la respuesta de red si quisiéramos)
+            return networkResponse; // Devolver respuesta de red
           })
           .catch(error => {
-            // Falló la red y no estaba en caché.
+            // Falló la red y no estaba en caché
             console.warn('SW: Fallo al obtener de red y no estaba en caché:', event.request.url, error);
-            // Podrías devolver una página offline genérica aquí si la tuvieras cacheada:
-            // return caches.match('/offline.html');
-            // O simplemente dejar que falle la petición.
+            // Podríamos devolver una página offline aquí
           });
       })
   );
 });
+
+console.log("SW: Script cargado y listeners añadidos."); // Log final
