@@ -115,7 +115,7 @@
             flex-wrap: wrap;
         }
 
-         .app-actions button { /* Estilo base para botones dentro de app-actions */
+         .app-actions > button { /* Estilo base para botones DIRECTOS dentro de app-actions */
             background-color: var(--secondary-color);
             color: white;
             border: none;
@@ -135,22 +135,21 @@
 
         /* Estilos para el desplegable 'Más Acciones' */
         .more-actions-details {
-            border: none; /* Quitar borde exterior */
+            border: none;
             padding: 0;
-            background-color: transparent; /* Sin fondo propio */
-            border-radius: 5px; /* Heredar borde redondeado */
-             position: relative; /* Para posicionar contenido si fuera necesario */
+            background-color: transparent;
+            border-radius: 5px;
+             position: relative;
         }
         .more-actions-details summary {
             /* Hereda estilos de .controls button */
-             list-style: none; /* Ocultar flecha por defecto */
+             list-style: none;
              display: inline-block;
              outline: none;
         }
          .more-actions-details summary::-webkit-details-marker {
-             display: none; /* Ocultar flecha en Chrome/Safari */
+             display: none;
          }
-         /* Flecha personalizada opcional */
          .more-actions-details summary::after {
              content: ' ▼';
              font-size: 0.8em;
@@ -161,9 +160,9 @@
          }
 
         .more-actions-content {
-             position: absolute; /* Posicionar desplegable */
-             right: 0; /* Alinear a la derecha del contenedor .app-actions */
-             top: calc(100% + 5px); /* Debajo del summary con un pequeño espacio */
+             position: absolute;
+             right: 0;
+             top: calc(100% + 5px);
              background-color: var(--card-bg);
              border: 1px solid var(--border-color);
              border-radius: 5px;
@@ -171,17 +170,17 @@
              display: flex;
              flex-direction: column;
              gap: 8px;
-             z-index: 10; /* Asegurar que esté por encima de otros elementos */
-             min-width: 150px; /* Ancho mínimo */
+             z-index: 10;
+             min-width: 150px;
              box-shadow: 0 4px 8px rgba(0,0,0,0.1);
         }
-         .more-actions-content button { /* Estilo para botones dentro del desplegable */
+         .more-actions-content button {
              width: 100%;
              background-color: var(--secondary-color);
              color: white;
              border: none;
-             text-align: left; /* Alinear texto a la izquierda */
-             padding: 8px 12px; /* Asegurar padding consistente */
+             text-align: left;
+             padding: 8px 12px;
          }
           body.dark-mode .more-actions-content {
               background-color: var(--dark-card-bg);
@@ -190,19 +189,10 @@
 
 
         /* Formulario Nueva Avería */
-        .new-averia-form {
-            background-color: var(--card-bg);
-            padding: 15px;
-            border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-            margin-bottom: 25px;
-            border: 1px solid var(--border-color);
-        }
+        .new-averia-form { background-color: var(--card-bg); padding: 15px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin-bottom: 25px; border: 1px solid var(--border-color); }
         .new-averia-form h2 { margin-top: 0; margin-bottom: 15px; font-size: 1.2em; color: var(--primary-color); }
-        .new-averia-form input[type="text"],
-        .new-averia-form textarea { width: 100%; padding: 10px; margin-bottom: 10px; border: 1px solid var(--border-color); border-radius: 5px; box-sizing: border-box; background-color: var(--bg-color); color: var(--text-color); }
-        body.dark-mode .new-averia-form input[type="text"],
-        body.dark-mode .new-averia-form textarea { background-color: var(--dark-bg); border-color: var(--dark-border-color); }
+        .new-averia-form input[type="text"], .new-averia-form textarea { width: 100%; padding: 10px; margin-bottom: 10px; border: 1px solid var(--border-color); border-radius: 5px; box-sizing: border-box; background-color: var(--bg-color); color: var(--text-color); }
+        body.dark-mode .new-averia-form input[type="text"], body.dark-mode .new-averia-form textarea { background-color: var(--dark-bg); border-color: var(--dark-border-color); }
         .new-averia-form textarea { min-height: 80px; resize: vertical; }
         .new-averia-form button { background-color: var(--primary-color); color: white; padding: 10px 15px; border: none; border-radius: 5px; cursor: pointer; font-size: 1em; width: 100%; }
         .new-averia-form button:hover { opacity: 0.9; }
@@ -297,10 +287,10 @@
             window.addEventListener('load', () => {
                 navigator.serviceWorker.register('/service-worker.js')
                 .then(registration => {
-                    console.log('ServiceWorker registrado con éxito:', registration.scope);
+                    // console.log('ServiceWorker registrado con éxito:', registration.scope); // Comentado para evitar alertas si no hay consola
                 })
                 .catch(error => {
-                    console.log('Fallo en el registro del ServiceWorker:', error);
+                    // console.log('Fallo en el registro del ServiceWorker:', error); // Comentado
                 });
             });
         }
