@@ -7,7 +7,7 @@
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#4A90E2">
     <style>
-        /* --- Estilos CSS (con añadidos para nuevas funcionalidades) --- */
+        /* --- Estilos CSS (sin cambios respecto a la versión anterior que te di) --- */
         :root {
             --bg-color: #f4f7f6;
             --text-color: #333;
@@ -60,10 +60,10 @@
         /* Controles Generales */
         .controls {
             display: flex;
-            flex-direction: column; /* Cambiado a columna para mejor disposición */
-            gap: 15px; /* Espacio entre filas de controles */
+            flex-direction: column;
+            gap: 15px;
             margin-bottom: 20px;
-            background-color: var(--card-bg); /* Fondo para agrupar controles */
+            background-color: var(--card-bg);
             padding: 15px;
             border-radius: 8px;
             box-shadow: 0 2px 4px rgba(0,0,0,0.05);
@@ -88,20 +88,20 @@
             padding: 8px 12px;
             border: 1px solid var(--border-color);
             border-radius: 5px;
-            background-color: var(--button-bg); /* Usar variable de botón */
+            background-color: var(--button-bg);
             color: var(--button-text);
             cursor: pointer;
             font-size: 0.95em;
         }
 
         .controls input[type="search"] {
-             flex-grow: 1; /* Para que ocupe espacio disponible */
-             min-width: 150px; /* Ancho mínimo */
-             background-color: var(--bg-color); /* Fondo diferente para inputs */
+             flex-grow: 1;
+             min-width: 150px;
+             background-color: var(--bg-color);
              color: var(--text-color);
         }
          body.dark-mode .controls input[type="search"] {
-             background-color: var(--dark-bg); /* Fondo inputs en modo oscuro */
+             background-color: var(--dark-bg);
              border-color: var(--dark-border-color);
          }
 
@@ -109,7 +109,7 @@
         .app-actions {
             display: flex;
             gap: 10px;
-            flex-wrap: wrap; /* Para que los botones pasen abajo si no caben */
+            flex-wrap: wrap;
         }
 
          .app-actions button {
@@ -155,14 +155,14 @@
             margin-bottom: 10px;
             border: 1px solid var(--border-color);
             border-radius: 5px;
-            box-sizing: border-box; /* Para incluir padding en el width */
-            background-color: var(--bg-color); /* Fondo diferente para inputs */
+            box-sizing: border-box;
+            background-color: var(--bg-color);
             color: var(--text-color);
         }
 
         body.dark-mode .new-averia-form input[type="text"],
         body.dark-mode .new-averia-form textarea {
-            background-color: var(--dark-bg); /* Fondo inputs en modo oscuro */
+            background-color: var(--dark-bg);
             border-color: var(--dark-border-color);
         }
 
@@ -210,7 +210,7 @@
             font-weight: bold;
             margin: 0;
             flex-grow: 1;
-            word-break: break-word; /* Evitar desbordamiento de títulos largos */
+            word-break: break-word;
         }
 
         .averia-date {
@@ -226,8 +226,8 @@
             display: flex;
             align-items: center;
             gap: 8px;
-            flex-shrink: 0; /* Para que no se encoja con títulos largos */
-             flex-wrap: wrap; /* Para que controles bajen si no caben */
+            flex-shrink: 0;
+             flex-wrap: wrap;
         }
 
 
@@ -235,12 +235,12 @@
             padding: 5px 8px;
             border: 1px solid var(--border-color);
             border-radius: 4px;
-            background-color: var(--bg-color); /* Fondo inputs */
+            background-color: var(--bg-color);
             color: var(--text-color);
             font-size: 0.9em;
         }
         body.dark-mode .averia-controls select {
-            background-color: var(--dark-bg); /* Fondo inputs modo oscuro */
+            background-color: var(--dark-bg);
             border-color: var(--dark-border-color);
         }
 
@@ -253,20 +253,20 @@
             border: 1px solid var(--border-color);
             border-radius: 5px;
             box-sizing: border-box;
-            background-color: var(--bg-color); /* Fondo inputs */
+            background-color: var(--bg-color);
             color: var(--text-color);
             resize: vertical;
-            white-space: pre-wrap; /* Mostrar saltos de línea */
-            font-size: 0.95em; /* Tamaño ligeramente menor */
+            white-space: pre-wrap;
+            font-size: 0.95em;
         }
         body.dark-mode .averia-description {
-            background-color: var(--dark-bg); /* Fondo inputs modo oscuro */
+            background-color: var(--dark-bg);
             border-color: var(--dark-border-color);
         }
 
          .averia-actions {
              display: flex;
-             gap: 5px; /* Espacio entre iconos */
+             gap: 5px;
          }
 
         .averia-actions button,
@@ -276,8 +276,8 @@
             cursor: pointer;
             padding: 5px;
             font-size: 1.1em;
-            color: var(--text-color); /* Asegurar visibilidad botón */
-            line-height: 1; /* Ajustar altura */
+            color: var(--text-color);
+            line-height: 1;
         }
          .averia-actions button:disabled {
              opacity: 0.3;
@@ -311,7 +311,7 @@
         .comment-text {
             flex-grow: 1;
             margin-right: 10px;
-            white-space: pre-wrap; /* Conservar saltos de línea */
+            white-space: pre-wrap;
             word-wrap: break-word;
         }
         .comment-actions {
@@ -329,29 +329,29 @@
             padding: 8px;
             border: 1px solid var(--border-color);
             border-radius: 4px;
-            resize: none; /* No redimensionable inicialmente */
-            height: 35px; /* Altura inicial pequeña */
+            resize: none;
+            height: 35px;
             box-sizing: border-box;
-            background-color: var(--bg-color); /* Fondo inputs */
+            background-color: var(--bg-color);
             color: var(--text-color);
-            font-size: 0.9em; /* Tamaño consistente */
+            font-size: 0.9em;
         }
         body.dark-mode .add-comment-form textarea {
-            background-color: var(--dark-bg); /* Fondo inputs modo oscuro */
+            background-color: var(--dark-bg);
             border-color: var(--dark-border-color);
         }
         .add-comment-form button {
-            padding: 0 12px; /* Ajustar padding */
+            padding: 0 12px;
             background-color: var(--secondary-color);
             color: white;
             border: none;
             border-radius: 4px;
             cursor: pointer;
-            height: 35px; /* Coincidir altura con textarea */
+            height: 35px;
             box-sizing: border-box;
-            flex-shrink: 0; /* Evitar que se encoja */
-             font-size: 1.2em; /* Icono más grande */
-             line-height: 35px; /* Centrar icono verticalmente */
+            flex-shrink: 0;
+             font-size: 1.2em;
+             line-height: 35px;
         }
 
         /* Iconos básicos (emojis) */
@@ -359,11 +359,11 @@
         .icon-down::before { content: "⬇️"; }
         .icon-edit::before { content: "✏️"; }
         .icon-delete::before { content: "🗑️"; }
-        .icon-add::before { content: "➕"; } /* Cambiado para consistencia */
+        .icon-add::before { content: "➕"; }
 
-        /* Indicador Offline (Opcional pero útil) */
+        /* Indicador Offline */
         #offline-indicator {
-            display: none; /* Oculto por defecto */
+            display: none;
             position: fixed;
             bottom: 10px;
             left: 10px;
@@ -375,7 +375,7 @@
             z-index: 1000;
         }
         body.offline #offline-indicator {
-            display: block; /* Mostrar cuando no hay conexión */
+            display: block;
         }
 
     </style>
@@ -395,8 +395,7 @@
                      <label for="filter-status">Filtrar por estado:</label>
                      <select id="filter-status">
                          <option value="Todos">Todos</option>
-                         {/* Options se llenarán desde JS */}
-                     </select>
+                         </select>
                  </div>
                 <div class="app-actions">
                      <button id="export-button">Exportar JSON</button>
@@ -411,15 +410,13 @@
             <h2>Nueva Avería</h2>
             <input type="text" id="new-averia-title" placeholder="Cliente" list="client-suggestions" required>
              <datalist id="client-suggestions">
-                {/* Options se llenarán desde JS */}
-            </datalist>
+                </datalist>
             <textarea id="new-averia-description" placeholder="Descripción detallada"></textarea>
-            <button id="add-averia-button">Añadir o Actualizar Avería</button> {/* Texto botón actualizado */}
+            <button id="add-averia-button">Añadir o Actualizar Avería</button>
         </div>
 
         <div id="averias-list">
-            {/* Las averías se renderizarán aquí */}
-        </div>
+            </div>
 
     </div>
 
@@ -455,3 +452,4 @@
 
 </body>
 </html>
+
