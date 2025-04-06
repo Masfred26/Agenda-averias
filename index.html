@@ -230,7 +230,6 @@
         /* Indicador Offline */
         #offline-indicator { display: none; position: fixed; bottom: 10px; left: 10px; background-color: var(--danger-color); color: white; padding: 5px 10px; border-radius: 5px; font-size: 0.8em; z-index: 1000; }
         body.offline #offline-indicator { display: block; }
-
     </style>
 </head>
 <body>
@@ -254,7 +253,8 @@
                      <button id="install-pwa-button" style="display: none;">Instalar App</button>
 
                      <details class="more-actions-details">
-                         <summary>Más Acciones</summary> <div class="more-actions-content">
+                         <summary>Más Acciones</summary>
+                         <div class="more-actions-content">
                              <button id="export-button">Exportar JSON</button>
                              <button id="import-button">Importar JSON</button>
                              <input type="file" id="import-file" accept=".json" style="display: none;">
@@ -286,22 +286,15 @@
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
                 navigator.serviceWorker.register('/service-worker.js')
-                .then(registration => {
-                    // console.log('ServiceWorker registrado con éxito:', registration.scope); // Comentado para evitar alertas si no hay consola
-                })
-                .catch(error => {
-                    // console.log('Fallo en el registro del ServiceWorker:', error); // Comentado
-                });
+                .then(registration => { /* console.log('SW registrado'); */ })
+                .catch(error => { /* console.log('Fallo SW:', error); */ });
             });
         }
 
         // Indicador online/offline básico (sin cambios)
         function updateOnlineStatus() {
-            if (navigator.onLine) {
-                document.body.classList.remove('offline');
-            } else {
-                document.body.classList.add('offline');
-            }
+            if (navigator.onLine) { document.body.classList.remove('offline'); }
+            else { document.body.classList.add('offline'); }
         }
         window.addEventListener('online', updateOnlineStatus);
         window.addEventListener('offline', updateOnlineStatus);
